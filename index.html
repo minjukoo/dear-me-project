@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Dear Me · 오늘의 마음</title>
+    <link rel="stylesheet" href="/style.css" />
+    <script src="/app.js" defer></script>
+  </head>
+  <body>
+    <main>
+      <p class="eyebrow">DEAR ME</p>
+      <h1>오늘의 마음을 들려주세요.</h1>
+      <p class="intro">잠시 쉬어 가며 나에게 편지를 쓰듯 이야기해 보세요.</p>
+      <p class="notice">현재는 미리 준비된 문장으로 답하는 데모입니다. 대화는 저장하지 않습니다.</p>
+      <section id="messages" role="log" aria-label="대화" aria-live="polite">
+        <p class="message assistant">안녕하세요. 오늘은 어떤 하루였나요?</p>
+      </section>
+      <form id="chat-form">
+        <label for="message">나의 이야기</label>
+        <textarea id="message" name="message" rows="3" maxlength="2000" required placeholder="오늘 있었던 일을 적어 주세요."></textarea>
+        <div class="actions"><span id="status" role="status"></span><button type="submit">보내기</button></div>
+      </form>
+    </main>
+  </body>
+</html>
