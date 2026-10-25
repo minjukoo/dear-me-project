@@ -10,7 +10,33 @@
   <body>
     <main>
       <p class="eyebrow">DEAR ME</p>
-      <h1>오늘의 마음을 들려주세요.</h1>
+      <section id="setup-screen" class="screen" aria-labelledby="setup-title">
+        <p class="step">01 / 미래의 나 설정</p>
+        <h1 id="setup-title" tabindex="-1">미래의 나를 만나볼까요?</h1>
+        <p class="intro">나를 닮은 캐릭터를 만들기 위해 사진을 한 장 올려주세요</p>
+        <form id="setup-form" class="setup-card">
+          <div class="photo-field">
+            <div class="photo-preview">
+              <span id="photo-placeholder">나의 사진</span>
+              <img id="photo-preview" alt="선택한 나의 사진 미리보기" hidden />
+            </div>
+            <label for="photo">사진 선택</label>
+            <input id="photo" name="photo" type="file" accept="image/*" aria-describedby="photo-help setup-status" required />
+            <p id="photo-help" class="notice">5MB 이하의 사진을 선택해 주세요. 사진은 이 페이지에서만 사용하며 서버로 전송하지 않습니다.</p>
+          </div>
+          <div class="nickname-field">
+            <label for="nickname">편지를 받을 나의 별명</label>
+            <input id="nickname" name="nickname" type="text" maxlength="30" placeholder="어떤 이름으로 불러드릴까요?" required />
+            <p class="notice">미래의 내가 이 이름으로 편지를 건넬 거예요.</p>
+          </div>
+          <p id="setup-status" role="status" class="notice"></p>
+          <button id="next-button" type="submit" disabled>다음으로 / 편지 쓰러 가기 <span aria-hidden="true">→</span></button>
+        </form>
+      </section>
+      <section id="letter-screen" class="screen" aria-labelledby="letter-title" hidden>
+      <div class="letter-header"><p class="step">02 / 고민 편지 작성</p><button id="edit-profile" type="button" class="secondary">설정 수정</button></div>
+      <div class="profile-summary"><img id="profile-photo" alt="내 프로필 사진" /><p id="recipient"></p></div>
+      <h1 id="letter-title" tabindex="-1">오늘의 마음을 들려주세요.</h1>
       <p class="intro">잠시 쉬어 가며 나에게 편지를 쓰듯 이야기해 보세요.</p>
       <p class="notice">답변을 위해 입력한 메시지를 챗쿠 API로 전송합니다. 민감한 개인정보는 입력하지 마세요.</p>
       <section id="messages" role="log" aria-label="대화" aria-live="polite">
@@ -21,6 +47,7 @@
         <textarea id="message" name="message" rows="3" maxlength="2000" required placeholder="오늘 있었던 일을 적어 주세요."></textarea>
         <div class="actions"><span id="status" role="status"></span><button type="submit">보내기</button></div>
       </form>
+      </section>
     </main>
   </body>
 </html>
