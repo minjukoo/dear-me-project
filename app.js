@@ -17,41 +17,83 @@ const resultStorageKey = 'dearMe.letterResult';
 const sendVideo = $('#send-video');
 window.dearMeProfile = null;
 
-function showResult() {
-    if (!latestResult || !$('#send-screen').classList.contains('active')) return;
-    sendVideo.pause();
-    showScreen('result-screen', '#reply-title');
+let flow = 'idle';
+let sendFinished = false;
+const loadingVideo = $('#loading-video');
+const characterVideo = $('#character-video');
+const endingVideo = $('#ending-video');
+const media = [sendVideo, loadingVideo, characterVideo, endingVideo];
+function playAsset(element, filename) {
+    element.hidden = false;
+    element.src = `/${filename}`;
+    element.play().catch(() => {
+        if (element.error) element.dispatchEvent(new Event('error'));
+        // Autoplay may be blocked; native controls and skip buttons remain usable.
+    });
 }
-sendVideo.addEventListener('ended', showResult);
-sendVideo.addEventListener('error', showResult);
-$('#skip-send-btn').addEventListener('click', showResult);
-$('#write-again-btn').addEventListener('click', () => {
+function showResult() {
+    if (!latestResult || flow !== 'pending') return;
+    flow = 'result';
+    showScreen('result-screen', '#reply-title');
+    endingVideo.hidden = true;
+    playAsset(characterVideo, 'character-loop.mp4');
+}
+function finishSendVideo() {
+    if (flow !== 'pending') return;
+    sendFinished = true;
+    sendVideo.pause();
+    if (latestResult) showResult();
+    else {
+        showScreen('loading-screen', '#loading-title');
+        playAsset(loadingVideo, 'loading-loop.mp4');
+    }
+}
+sendVideo.addEventListener('ended', finishSendVideo);
+sendVideo.addEventListener('error', finishSendVideo);
+$('#skip-send-btn').addEventListener('click', finishSendVideo);
+[loadingVideo, characterVideo, endingVideo].forEach(element => {
+    element.addEventListener('error', () => { element.hidden = true; });
+});
+$('#finish-letter-btn').addEventListener('click', () => {
+    if (flow !== 'result') return;
+    characterVideo.pause();
+    characterVideo.hidden = true;
+    playAsset(endingVideo, 'character-ending.mp4');
+});
+endingVideo.addEventListener('ended', () => { endingVideo.hidden = true; });
+function writeAgain() {
+    flow = 'idle';
+    latestResult = null;
     letter.value = '';
     letterStatus.textContent = '';
     updateLetterButton();
     showScreen('letter-screen', '#letter-title');
-});
+}
+$('#write-again-btn').addEventListener('click', writeAgain);
+$('#safety-back-btn').addEventListener('click', writeAgain);
 
 function receiveReply(result) {
     latestResult = result;
+    if (result.safetyType === 'danger') {
+        flow = 'danger';
+        try { sessionStorage.removeItem(resultStorageKey); } catch { /* Optional storage. */ }
+        $('#safety-message').textContent = result.reply;
+        showScreen('safety-screen', '#safety-title');
+        return;
+    }
     $('#letter-reply').textContent = result.reply;
     $('#result-recipient').textContent = `${result.nickname}님에게 도착한 편지`;
     $('#storage-status').textContent = '';
     try {
         sessionStorage.setItem(resultStorageKey, JSON.stringify(result));
     } catch {
-        // Private browsing/storage quotas must not discard a successful reply.
         $('#storage-status').textContent = '브라우저 임시 저장을 사용할 수 없어 이 화면에서만 답장을 볼 수 있어요.';
     }
-    showScreen('send-screen', '#send-title');
-    sendVideo.src = '/letter-send.mp4';
-    sendVideo.play().catch(() => {
-        // A missing file skips to the reply; autoplay restrictions leave controls available.
-        if (sendVideo.error) showResult();
-    });
+    if (sendFinished) showResult();
 }
 
 function showScreen(id, heading) {
+    media.forEach(element => { if (!element.closest(`#${id}`)) element.pause(); });
     document.querySelectorAll('.screen').forEach((screen) => {
         const active = screen.id === id;
         screen.hidden = !active;
@@ -144,6 +186,12 @@ $('#letter-form').addEventListener('submit', async (event) => {
     updateLetterButton();
     letterStatus.textContent = '시간 우체통으로 보내는 중...';
     $('#letter-form').setAttribute('aria-busy', 'true');
+    flow = 'pending';
+    sendFinished = false;
+    latestResult = null;
+    try { sessionStorage.removeItem(resultStorageKey); } catch { /* Optional storage. */ }
+    showScreen('send-screen', '#send-title');
+    playAsset(sendVideo, 'letter-send.mp4');
     try {
         const response = await fetch('/api/chatkhu', {
             method: 'POST',
@@ -159,14 +207,18 @@ $('#letter-form').addEventListener('submit', async (event) => {
             throw new Error(`${data?.error || '답변을 받지 못했습니다.'} (HTTP ${response.status}${data?.code ? `, ${data.code}` : ''}${data?.requestId ? `, 요청 ${data.requestId}` : ''})`);
         }
         if (typeof data?.reply !== 'string' || !data.reply.trim()) throw new Error('답장 형식이 올바르지 않습니다.');
+        if (!['normal', 'danger'].includes(data.safetyType)) throw new Error('답장의 안전 분류를 확인하지 못했습니다. 다시 시도해 주세요.');
         receiveReply({
             nickname: window.dearMeProfile?.nickname || '나',
             message,
             reply: data.reply,
+            safetyType: data.safetyType === 'danger' ? 'danger' : 'normal',
             receivedAt: new Date().toISOString(),
         });
         letterStatus.textContent = '';
     } catch (error) {
+        flow = 'error';
+        showScreen('letter-screen', '#letter-title');
         letterStatus.textContent = error.name === 'TimeoutError'
             ? '응답이 늦어지고 있어요. 다시 시도해 주세요.'
             : error instanceof TypeError
@@ -184,9 +236,10 @@ $('#letter-form').addEventListener('submit', async (event) => {
 // Recover the most recent reply when this tab is refreshed. Do not persist photos.
 try {
     const saved = JSON.parse(sessionStorage.getItem(resultStorageKey));
-    if (saved && typeof saved.reply === 'string' && saved.reply.trim()
+    if (saved && saved.safetyType === 'normal' && typeof saved.reply === 'string' && saved.reply.trim()
         && typeof saved.nickname === 'string' && typeof saved.message === 'string') {
         latestResult = saved;
+        flow = 'result';
         $('#letter-reply').textContent = saved.reply;
         $('#result-recipient').textContent = `${saved.nickname}님에게 도착한 편지`;
         letter.value = saved.message;
@@ -194,5 +247,6 @@ try {
         $('#display-nickname').textContent = `${saved.nickname}님`;
         video.pause();
         showScreen('result-screen', '#reply-title');
+        playAsset(characterVideo, 'character-loop.mp4');
     }
 } catch { /* Storage may be unavailable or contain an outdated record. */ }

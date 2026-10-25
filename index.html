@@ -72,18 +72,43 @@
             <h2 id="send-title" tabindex="-1">시간 우체통을 지나고 있어요</h2>
             <p class="subtitle">미래의 내가 보낸 답장을 곧 만나보세요.</p>
             <video id="send-video" muted playsinline controls preload="none" aria-label="편지 전송 영상"></video>
-            <button id="skip-send-btn" class="btn-primary" type="button">답장 바로 보기</button>
+            <button id="skip-send-btn" class="btn-primary" type="button">영상 건너뛰기</button>
+        </div>
+    </section>
+
+    <section id="loading-screen" class="screen" aria-labelledby="loading-title" hidden>
+        <div class="container">
+            <h2 id="loading-title" tabindex="-1">미래의 내가 답장을 쓰고 있어요</h2>
+            <p class="subtitle" role="status">시계와 별빛을 따라 조금만 기다려 주세요…</p>
+            <video id="loading-video" class="asset-video" loop muted playsinline controls preload="none" aria-label="답장 대기 영상"></video>
+            <div class="waiting-stars" aria-hidden="true">✦ ◷ ✧</div>
+        </div>
+    </section>
+
+    <section id="safety-screen" class="screen" aria-labelledby="safety-title" hidden>
+        <div class="container safety-card">
+            <h2 id="safety-title" tabindex="-1">지금은 안전이 먼저예요</h2>
+            <p id="safety-message" role="alert"></p>
+            <nav class="emergency-links" aria-label="긴급 도움 연락처">
+                <a href="tel:109">자살예방상담전화 109</a>
+                <a href="tel:112">경찰 112</a>
+                <a href="tel:119">구급·구조 119</a>
+            </nav>
+            <button id="safety-back-btn" class="btn-primary" type="button">작성 화면으로 돌아가기</button>
         </div>
     </section>
 
     <section id="result-screen" class="screen" aria-labelledby="reply-title" hidden>
         <div class="letter-wrapper">
             <p id="result-recipient" class="letter-header"></p>
+            <video id="character-video" class="asset-video" loop muted playsinline controls preload="none" aria-label="미래의 나 캐릭터 영상" hidden></video>
+            <video id="ending-video" class="asset-video" muted playsinline controls preload="none" aria-label="편지 마무리 영상" hidden></video>
             <section id="reply-panel" class="letter-paper reply-panel" aria-labelledby="reply-title">
                 <h3 id="reply-title" tabindex="-1">나에게 도착한 답장</h3>
                 <p id="letter-reply"></p>
             </section>
             <p id="storage-status" class="status" role="status"></p>
+            <button id="finish-letter-btn" class="btn-primary" type="button">답장 읽기 마치기</button>
             <button id="write-again-btn" class="btn-primary" type="button">다시 편지 쓰기</button>
         </div>
     </section>
