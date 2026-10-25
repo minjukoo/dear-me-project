@@ -45,7 +45,7 @@ module.exports = async function handler(req, res) {
           messages: [{ role: 'user', content: message.trim() }],
           stream: false,
         }),
-        signal: AbortSignal.timeout(10000),
+        signal: AbortSignal.timeout(50000),
       },
     );
     if (!response.ok) {
@@ -73,7 +73,7 @@ module.exports = async function handler(req, res) {
     return res.status(200).json({ reply });
   } catch (error) {
     if (error.name === 'TimeoutError') {
-      return fail(504, 'GATEWAY_TIMEOUT', '게이트웨이 응답이 10초를 초과했습니다. 다시 시도해 주세요.');
+      return fail(504, 'GATEWAY_TIMEOUT', '게이트웨이 응답이 50초를 초과했습니다. 다시 시도해 주세요.');
     }
     const networkCode = error.cause?.code;
     const reasons = {

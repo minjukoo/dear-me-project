@@ -149,7 +149,7 @@ $('#letter-form').addEventListener('submit', async (event) => {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ message }),
-            signal: AbortSignal.timeout(15000),
+            signal: AbortSignal.timeout(65000),
         });
         let data;
         const text = await response.text();
