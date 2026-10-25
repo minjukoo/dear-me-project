@@ -12,7 +12,44 @@ const letterStatus = $('#letter-status');
 let photoData = '';
 let photoVersion = 0;
 let sending = false;
+let latestResult = null;
+const resultStorageKey = 'dearMe.letterResult';
+const sendVideo = $('#send-video');
 window.dearMeProfile = null;
+
+function showResult() {
+    if (!latestResult || !$('#send-screen').classList.contains('active')) return;
+    sendVideo.pause();
+    showScreen('result-screen', '#reply-title');
+}
+sendVideo.addEventListener('ended', showResult);
+sendVideo.addEventListener('error', showResult);
+$('#skip-send-btn').addEventListener('click', showResult);
+$('#write-again-btn').addEventListener('click', () => {
+    letter.value = '';
+    letterStatus.textContent = '';
+    updateLetterButton();
+    showScreen('letter-screen', '#letter-title');
+});
+
+function receiveReply(result) {
+    latestResult = result;
+    $('#letter-reply').textContent = result.reply;
+    $('#result-recipient').textContent = `${result.nickname}님에게 도착한 편지`;
+    $('#storage-status').textContent = '';
+    try {
+        sessionStorage.setItem(resultStorageKey, JSON.stringify(result));
+    } catch {
+        // Private browsing/storage quotas must not discard a successful reply.
+        $('#storage-status').textContent = '브라우저 임시 저장을 사용할 수 없어 이 화면에서만 답장을 볼 수 있어요.';
+    }
+    showScreen('send-screen', '#send-title');
+    sendVideo.src = '/letter-send.mp4';
+    sendVideo.play().catch(() => {
+        // A missing file skips to the reply; autoplay restrictions leave controls available.
+        if (sendVideo.error) showResult();
+    });
+}
 
 function showScreen(id, heading) {
     document.querySelectorAll('.screen').forEach((screen) => {
@@ -99,15 +136,19 @@ $('#letter-form').addEventListener('submit', async (event) => {
     event.preventDefault();
     updateLetterButton();
     if (sendButton.disabled) return;
+    if (!window.confirm('정말 편지를 보낼까요?')) return;
+    const message = letter.value.trim();
     sending = true;
+    letter.readOnly = true;
+    sendButton.textContent = '시간 우체통으로 보내는 중...';
     updateLetterButton();
-    letterStatus.textContent = '미래의 나에게 편지를 전하고 있어요…';
-    $('#reply-panel').hidden = true;
+    letterStatus.textContent = '시간 우체통으로 보내는 중...';
+    $('#letter-form').setAttribute('aria-busy', 'true');
     try {
         const response = await fetch('/api/chatkhu', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ message: letter.value.trim() }),
+            body: JSON.stringify({ message }),
             signal: AbortSignal.timeout(15000),
         });
         let data;
@@ -118,10 +159,13 @@ $('#letter-form').addEventListener('submit', async (event) => {
             throw new Error(`${data?.error || '답변을 받지 못했습니다.'} (HTTP ${response.status}${data?.code ? `, ${data.code}` : ''}${data?.requestId ? `, 요청 ${data.requestId}` : ''})`);
         }
         if (typeof data?.reply !== 'string' || !data.reply.trim()) throw new Error('답장 형식이 올바르지 않습니다.');
-        $('#letter-reply').textContent = data.reply;
-        $('#reply-panel').hidden = false;
-        letterStatus.textContent = '답장이 도착했어요.';
-        $('#reply-title').focus();
+        receiveReply({
+            nickname: window.dearMeProfile?.nickname || '나',
+            message,
+            reply: data.reply,
+            receivedAt: new Date().toISOString(),
+        });
+        letterStatus.textContent = '';
     } catch (error) {
         letterStatus.textContent = error.name === 'TimeoutError'
             ? '응답이 늦어지고 있어요. 다시 시도해 주세요.'
@@ -130,6 +174,25 @@ $('#letter-form').addEventListener('submit', async (event) => {
                 : error.message || '편지를 보내지 못했어요. 다시 시도해 주세요.';
     } finally {
         sending = false;
+        letter.readOnly = false;
+        sendButton.textContent = '미래의 나에게 보내기';
+        $('#letter-form').removeAttribute('aria-busy');
         updateLetterButton();
     }
 });
+
+// Recover the most recent reply when this tab is refreshed. Do not persist photos.
+try {
+    const saved = JSON.parse(sessionStorage.getItem(resultStorageKey));
+    if (saved && typeof saved.reply === 'string' && saved.reply.trim()
+        && typeof saved.nickname === 'string' && typeof saved.message === 'string') {
+        latestResult = saved;
+        $('#letter-reply').textContent = saved.reply;
+        $('#result-recipient').textContent = `${saved.nickname}님에게 도착한 편지`;
+        letter.value = saved.message;
+        window.dearMeProfile = { nickname: saved.nickname, photo: null };
+        $('#display-nickname').textContent = `${saved.nickname}님`;
+        video.pause();
+        showScreen('result-screen', '#reply-title');
+    }
+} catch { /* Storage may be unavailable or contain an outdated record. */ }

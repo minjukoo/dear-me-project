@@ -64,10 +64,27 @@
                 <button id="send-letter-btn" class="btn-primary" type="submit" disabled>미래의 나에게 보내기</button>
                 <p id="letter-status" class="status" role="status"></p>
             </form>
-            <section id="reply-panel" class="letter-paper reply-panel" aria-labelledby="reply-title" hidden>
+        </div>
+    </section>
+
+    <section id="send-screen" class="screen" aria-labelledby="send-title" hidden>
+        <div class="container">
+            <h2 id="send-title" tabindex="-1">시간 우체통을 지나고 있어요</h2>
+            <p class="subtitle">미래의 내가 보낸 답장을 곧 만나보세요.</p>
+            <video id="send-video" muted playsinline controls preload="none" aria-label="편지 전송 영상"></video>
+            <button id="skip-send-btn" class="btn-primary" type="button">답장 바로 보기</button>
+        </div>
+    </section>
+
+    <section id="result-screen" class="screen" aria-labelledby="reply-title" hidden>
+        <div class="letter-wrapper">
+            <p id="result-recipient" class="letter-header"></p>
+            <section id="reply-panel" class="letter-paper reply-panel" aria-labelledby="reply-title">
                 <h3 id="reply-title" tabindex="-1">나에게 도착한 답장</h3>
                 <p id="letter-reply"></p>
             </section>
+            <p id="storage-status" class="status" role="status"></p>
+            <button id="write-again-btn" class="btn-primary" type="button">다시 편지 쓰기</button>
         </div>
     </section>
 </body>
