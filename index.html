@@ -1,53 +1,74 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="ko">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Dear Me · 오늘의 마음</title>
-    <link rel="stylesheet" href="/style.css" />
-    <script src="/app.js" defer></script>
-  </head>
-  <body>
-    <main>
-      <p class="eyebrow">DEAR ME</p>
-      <section id="setup-screen" class="screen" aria-labelledby="setup-title">
-        <p class="step">01 / 미래의 나 설정</p>
-        <h1 id="setup-title" tabindex="-1">미래의 나를 만나볼까요?</h1>
-        <p class="intro">나를 닮은 캐릭터를 만들기 위해 사진을 한 장 올려주세요</p>
-        <form id="setup-form" class="setup-card">
-          <div class="photo-field">
-            <div class="photo-preview">
-              <span id="photo-placeholder">나의 사진</span>
-              <img id="photo-preview" alt="선택한 나의 사진 미리보기" hidden />
-            </div>
-            <label for="photo">사진 선택</label>
-            <input id="photo" name="photo" type="file" accept="image/*" aria-describedby="photo-help setup-status" required />
-            <p id="photo-help" class="notice">5MB 이하의 사진을 선택해 주세요. 사진은 이 페이지에서만 사용하며 서버로 전송하지 않습니다.</p>
-          </div>
-          <div class="nickname-field">
-            <label for="nickname">편지를 받을 나의 별명</label>
-            <input id="nickname" name="nickname" type="text" maxlength="30" placeholder="어떤 이름으로 불러드릴까요?" required />
-            <p class="notice">미래의 내가 이 이름으로 편지를 건넬 거예요.</p>
-          </div>
-          <p id="setup-status" role="status" class="notice"></p>
-          <button id="next-button" type="submit" disabled>다음으로 / 편지 쓰러 가기 <span aria-hidden="true">→</span></button>
-        </form>
-      </section>
-      <section id="letter-screen" class="screen" aria-labelledby="letter-title" hidden>
-      <div class="letter-header"><p class="step">02 / 고민 편지 작성</p><button id="edit-profile" type="button" class="secondary">설정 수정</button></div>
-      <div class="profile-summary"><img id="profile-photo" alt="내 프로필 사진" /><p id="recipient"></p></div>
-      <h1 id="letter-title" tabindex="-1">오늘의 마음을 들려주세요.</h1>
-      <p class="intro">잠시 쉬어 가며 나에게 편지를 쓰듯 이야기해 보세요.</p>
-      <p class="notice">답변을 위해 입력한 메시지를 챗쿠 API로 전송합니다. 민감한 개인정보는 입력하지 마세요.</p>
-      <section id="messages" role="log" aria-label="대화" aria-live="polite">
-        <p class="message assistant">안녕하세요. 오늘은 어떤 하루였나요?</p>
-      </section>
-      <form id="chat-form">
-        <label for="message">나의 이야기</label>
-        <textarea id="message" name="message" rows="3" maxlength="2000" required placeholder="오늘 있었던 일을 적어 주세요."></textarea>
-        <div class="actions"><span id="status" role="status"></span><button type="submit">보내기</button></div>
-      </form>
-      </section>
-    </main>
-  </body>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dear, Me - 내가, 나에게</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="app.js" defer></script>
+</head>
+<body>
+    <!-- 1. 오프닝 화면 -->
+    <section id="opening-screen" class="screen active" aria-labelledby="opening-title">
+        <div class="video-container">
+            <video id="opening-video" autoplay muted playsinline aria-hidden="true">
+                <source src="opening.mp4" type="video/mp4">
+            </video>
+        </div>
+        <div class="opening-overlay">
+            <h1 id="opening-title" tabindex="-1">Dear, Me</h1>
+            <p>내가, 나에게 보내는 마음</p>
+            <button id="skip-opening-btn" class="btn-primary" type="button">시작하기</button>
+        </div>
+    </section>
+
+    <!-- 2. 미래의 나 설정 화면 -->
+    <section id="setup-screen" class="screen" aria-labelledby="setup-title" hidden>
+        <div class="container">
+            <h2 id="setup-title" tabindex="-1">미래의 나 설정하기</h2>
+            <p class="subtitle">이 캐릭터는 미래의 나를 상징합니다. 나를 닮은 캐릭터를 만들기 위해 사진을 올려주세요.</p>
+            <form id="setup-form">
+                <input type="file" id="photo-input" class="visually-hidden" accept="image/*" aria-label="사진 업로드하기" aria-describedby="photo-help setup-status" required>
+                <label class="photo-upload-box" for="photo-input">
+                    <span id="preview-placeholder">📷 사진 업로드하기</span>
+                    <img id="photo-preview" alt="선택한 사진 미리보기" hidden>
+                </label>
+                <p id="photo-help" class="subtitle">5MB 이하 사진 · 사진은 서버로 전송하지 않습니다.</p>
+                <div class="input-group">
+                    <label for="nickname-input" class="visually-hidden">편지를 받을 자신의 별명</label>
+                    <input type="text" id="nickname-input" placeholder="편지를 받을 자신의 별명을 입력하세요" maxlength="20" required>
+                </div>
+                <p id="setup-status" class="status" role="status"></p>
+                <button id="next-to-letter-btn" class="btn-primary" type="submit" disabled>편지 쓰러 가기</button>
+            </form>
+        </div>
+    </section>
+
+    <!-- 3. 고민 편지 작성 화면 -->
+    <section id="letter-screen" class="screen" aria-labelledby="letter-title" hidden>
+        <div class="letter-wrapper">
+            <header class="letter-header">
+                <span id="display-nickname" class="recipient-badge"></span>에게 보내는 편지
+            </header>
+            <form id="letter-form">
+                <div class="letter-paper">
+                    <div class="letter-guide-text">
+                        <h3 id="letter-title" tabindex="-1">오늘의 마음을 들려주세요</h3>
+                        <p id="letter-help">잠시 쉬어 가며 나에게 편지를 쓰듯 이야기해 보세요. (최소 50자 이상)</p>
+                    </div>
+                    <label for="letter-textarea" class="visually-hidden">나의 고민 편지</label>
+                    <textarea id="letter-textarea" placeholder="오늘 있었던 일과 나누고 싶은 고민을 적어주세요..." minlength="50" maxlength="1000" aria-describedby="letter-help char-count" required></textarea>
+                    <div class="letter-footer"><span id="char-count">0 / 1,000자</span></div>
+                </div>
+                <p class="privacy-note">답변을 위해 편지 내용을 챗쿠 API로 전송합니다.</p>
+                <button id="send-letter-btn" class="btn-primary" type="submit" disabled>미래의 나에게 보내기</button>
+                <p id="letter-status" class="status" role="status"></p>
+            </form>
+            <section id="reply-panel" class="letter-paper reply-panel" aria-labelledby="reply-title" hidden>
+                <h3 id="reply-title" tabindex="-1">나에게 도착한 답장</h3>
+                <p id="letter-reply"></p>
+            </section>
+        </div>
+    </section>
+</body>
 </html>
