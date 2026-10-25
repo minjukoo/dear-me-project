@@ -22,23 +22,20 @@
         </div>
     </section>
 
-    <!-- 2. 미래의 나 설정 화면 -->
+    <!-- 2. 별명과 나이 설정 화면 -->
     <section id="setup-screen" class="screen" aria-labelledby="setup-title" hidden>
         <div class="container">
             <h2 id="setup-title" tabindex="-1">미래의 나 설정하기</h2>
-            <p class="subtitle">이 캐릭터는 미래의 나를 상징합니다. 나를 닮은 캐릭터를 만들기 위해 사진을 올려주세요.</p>
+            <p class="subtitle">지금의 나를 알려주세요. 미래의 내가 다정한 이름으로 편지를 건넬 거예요.</p>
             <form id="setup-form">
-                <input type="file" id="photo-input" class="visually-hidden" accept="image/*" aria-label="사진 업로드하기" aria-describedby="photo-help setup-status" required>
-                <label class="photo-upload-box" for="photo-input">
-                    <span id="preview-placeholder">📷 사진 업로드하기</span>
-                    <img id="photo-preview" alt="선택한 사진 미리보기" hidden>
-                </label>
-                <p id="photo-help" class="subtitle">5MB 이하 사진 · 사진은 서버로 전송하지 않습니다.</p>
                 <div class="input-group">
-                    <label for="nickname-input" class="visually-hidden">편지를 받을 자신의 별명</label>
+                    <label for="nickname-input" >편지를 받을 자신의 별명</label>
                     <input type="text" id="nickname-input" placeholder="편지를 받을 자신의 별명을 입력하세요" maxlength="20" required>
                 </div>
-                <p id="setup-status" class="status" role="status"></p>
+                <div class="input-group">
+                    <label for="age-input">지금 나의 나이</label>
+                    <input type="number" id="age-input" placeholder="예: 25" min="1" max="120" step="1" inputmode="numeric" required>
+                </div>
                 <button id="next-to-letter-btn" class="btn-primary" type="submit" disabled>편지 쓰러 가기</button>
             </form>
         </div>
@@ -60,7 +57,7 @@
                     <textarea id="letter-textarea" placeholder="오늘 있었던 일과 나누고 싶은 고민을 적어주세요..." minlength="50" maxlength="1000" aria-describedby="letter-help char-count" required></textarea>
                     <div class="letter-footer"><span id="char-count">0 / 1,000자</span></div>
                 </div>
-                <p class="privacy-note">답변을 위해 편지 내용을 챗쿠 API로 전송합니다.</p>
+                <p class="privacy-note">답변을 위해 편지 내용과 별명·나이를 챗쿠 API로 전송합니다.</p>
                 <button id="send-letter-btn" class="btn-primary" type="submit" disabled>미래의 나에게 보내기</button>
                 <p id="letter-status" class="status" role="status"></p>
             </form>

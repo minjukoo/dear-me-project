@@ -10,7 +10,7 @@ Vercel 프로젝트의 Settings → Environment Variables에서 다음 값을 �
 - `CHATKHU_API_KEY`: 챗쿠 API Gateway에서 발급한 키. 서버에서만 사용하며 저장소에 커밋하지 않습니다.
 - `CHATKHU_MODEL`: 계정에서 사용할 수 있는 정확한 모델 ID. 제공된 명세에 모델 ID가 없어 기본값을 지정하지 않았습니다.
 
-`POST /api/chatkhu`에 `{"message":"안녕하세요"}`를 보내면 `{"reply":"..."}`를 반환합니다.
+`POST /api/chatkhu`에 `{"message":"안녕하세요","nickname":"민민","age":25}`를 보내면 `{"reply":"..."}`를 반환합니다.
 서버는 `https://factchat-cloud.mindlogic.ai/v1/gateway/chat/completions`에
 Bearer 인증으로 요청합니다. 요청의 `model`, `messages`, `stream: false`와
 응답의 `choices[0].message.content`는 OpenAI 호환 형식을 가정합니다.
@@ -29,7 +29,7 @@ Bearer 인증으로 요청합니다. 요청의 `model`, `messages`, `stream: fal
 확인 후 `/api/chatkhu` 요청과 `letter-send.mp4` 재생을 동시에 시작합니다.
 일반 답장이 먼저 도착해도 전송 영상 종료/건너뛰기까지 기다립니다.
 영상 종료 후 응답 대기 중에는 `loading-loop.mp4`를 반복 재생합니다.
-결과 화면은 `character-loop.mp4`, 읽기 마치기는 `character-ending.mp4`를 재생합니다.
+결과 화면은 `character-loop.mp4`를 재생합니다. 읽기 마치기는 임시 답장을 지우고 사용자 설정 화면으로 돌아갑니다. `character-ending.mp4`용 요소는 후속 연출을 위해 유지합니다.
 네 파일을 저장소 루트에 추가하면 코드 수정 없이 사용됩니다. 에셋이 없으면
 정적 대기 안내나 텍스트 결과를 사용합니다. 자동 재생이 차단되면 비디오 컨트롤로 재생할 수 있습니다.
 위험 응답이 오면 영상 재생을 즉시 멈추고 별도 안전 안내 화면을 표시합니다.
@@ -44,3 +44,7 @@ Vercel의 함수 URL은 파일 확장자를 제외한 `/api/chatkhu`입니다.
 JSON이 아닌 404/HTML 응답은 함수에 도달하지 못했을 가능성이 있으므로 배포의 Functions 목록에
 `api/chatkhu.js`가 있는지, Root Directory가 저장소 루트인지 확인하세요.
 함수 진입 시 `chatkhu.request`, 실패 시 `chatkhu.error`를 요청 ID와 함께 기록합니다.
+
+사용자 설정은 사진 없이 별명(1~20자)과 나이(1~120의 정수)를 받습니다.
+일반 답장은 서버에서도 `그리운 [나이]살의 [별명]아,`로 시작하도록 보장합니다.
+안전 안내에는 편지 호칭을 붙이지 않습니다.

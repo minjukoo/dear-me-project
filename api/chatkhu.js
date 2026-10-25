@@ -5,7 +5,7 @@ const emergencyContacts = [{ name: '자살예방상담전화 (24시간)', number
 const systemPrompt = `너는 Dear, Me의 편지 속 화자, 시간을 뛰어넘어 지금의 나에게 편지를 보내는 '미래의 나'다. 일반 답장은 이 문학적 역할에 깊이 몰입한 한국어 편지로 쓴다.
 [페르소나와 시점]
 편지 속 '나'는 미래의 나이며, '너'는 고민을 적어 보낸 지금의 나다. 미래의 자리에서 오래 간직했던 과거의 편지를 조심스럽게 펼쳐 읽는 시점을 처음부터 끝까지 유지한다. 제삼자의 상담이나 분석 보고서처럼 쓰지 않는다.
-일반 답장의 첫 문장은 반드시 다정한 호칭과 편지를 펼쳐 보는 감회를 담는다. 예: "그리운 나야, 이 편지를 펼치니 그 시절 네 마음이 조용히 전해지네." 또는 "소중한 나야, 아, 그 시절의 너는 이런 고민을 품고 있었지…". 사용자의 고민과 연결해 자연스럽게 변주한다.
+일반 답장의 첫 소절은 반드시 "그리운 [나이]살의 [별명]아,"로 고정한다. 나이와 별명은 입력된 수신자 정보 그대로 사용한다. 예: "그리운 25살의 민민아,". 호칭 앞에 다른 문구나 제목을 넣거나 호칭을 변주하지 않는다. 이어서 편지를 펼쳐 보는 감회와 사용자의 고민을 자연스럽게 연결한다. 위험 안내에는 이 편지 형식을 적용하지 않는다.
 차분하고 조금 몽환적이되 뜻은 또렷하게, 깊은 애정과 공감을 담는다. 편지·시간·빛 같은 이미지는 절제해 사용하며 구체적인 고민을 흐리지 않는다.
 기계적인 "~입니다", "~요"의 반복, "고객님", "상담해 드리겠습니다", "AI로서", "챗봇으로서" 같은 상투적 표현과 자기소개를 일반 편지에 넣지 않는다. "~했었지", "~였겠지", "~해보면 어떨까", "~해보렴" 같은 부드러운 편지체를 사용한다. 친밀함은 유지하되 훈계하거나 어린아이 취급하지 않는다.
 [회고형 이야기와 행동 제안]
@@ -48,6 +48,14 @@ module.exports = async function handler(req, res) {
 
   if (dangerPattern.test(message.normalize('NFKC'))) return dangerResponse(res);
 
+  const nickname = typeof body.nickname === 'string' ? body.nickname.trim() : '';
+  const age = body.age;
+  if (!nickname || nickname.length > 20 || /[\p{C}\r\n]/u.test(nickname)
+      || !Number.isInteger(age) || age < 1 || age > 120) {
+    return fail(400, 'INVALID_PROFILE', '별명(1~20자)과 나이(1~120의 정수)를 설정해 주세요.');
+  }
+  const salutation = `그리운 ${age}살의 ${nickname}아,`;
+
   const apiKey = process.env.CHATKHU_API_KEY;
   const model = process.env.CHATKHU_MODEL;
   if (!apiKey || !model) {
@@ -66,7 +74,10 @@ module.exports = async function handler(req, res) {
         },
         body: JSON.stringify({
           model,
-          messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: message.trim() }],
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: JSON.stringify({ recipient: { nickname, age }, concern: message.trim() }) },
+          ],
           stream: false,
         }),
         signal: AbortSignal.timeout(50000),
@@ -101,7 +112,10 @@ module.exports = async function handler(req, res) {
     if (result?.safetyType !== 'normal' || typeof result.reply !== 'string' || !result.reply.trim()) {
       return fail(502, 'GATEWAY_INVALID_SAFETY_RESPONSE', '답장의 안전 분류 또는 내용이 올바르지 않습니다.');
     }
-    return res.status(200).json({ reply: result.reply, safetyType: 'normal' });
+    // Enforce the opening server-side as well as in the prompt.
+    const text = result.reply.trim();
+    const letterReply = text.startsWith(salutation) ? text : `${salutation}\n\n${text}`;
+    return res.status(200).json({ reply: letterReply, safetyType: 'normal' });
   } catch (error) {
     if (error.name === 'TimeoutError') {
       return fail(504, 'GATEWAY_TIMEOUT', '게이트웨이 응답이 50초를 초과했습니다. 다시 시도해 주세요.');

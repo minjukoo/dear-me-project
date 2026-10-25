@@ -1,16 +1,11 @@
 const $ = (selector) => document.querySelector(selector);
 const video = $('#opening-video');
-const photoInput = $('#photo-input');
+const ageInput = $('#age-input');
 const nicknameInput = $('#nickname-input');
-const preview = $('#photo-preview');
-const placeholder = $('#preview-placeholder');
 const nextButton = $('#next-to-letter-btn');
-const setupStatus = $('#setup-status');
 const letter = $('#letter-textarea');
 const sendButton = $('#send-letter-btn');
 const letterStatus = $('#letter-status');
-let photoData = '';
-let photoVersion = 0;
 let sending = false;
 let latestResult = null;
 const resultStorageKey = 'dearMe.letterResult';
@@ -56,11 +51,15 @@ $('#skip-send-btn').addEventListener('click', finishSendVideo);
 });
 $('#finish-letter-btn').addEventListener('click', () => {
     if (flow !== 'result') return;
-    characterVideo.pause();
-    characterVideo.hidden = true;
-    playAsset(endingVideo, 'character-ending.mp4');
+    flow = 'idle';
+    latestResult = null;
+    letter.value = '';
+    letterStatus.textContent = '';
+    try { sessionStorage.removeItem(resultStorageKey); } catch { /* Optional storage. */ }
+    updateLetterButton();
+    updateNextButton();
+    showScreen('setup-screen', '#setup-title');
 });
-endingVideo.addEventListener('ended', () => { endingVideo.hidden = true; });
 function writeAgain() {
     flow = 'idle';
     latestResult = null;
@@ -114,57 +113,21 @@ function hideUnavailableVideo() { video.hidden = true; }
 video.addEventListener('error', hideUnavailableVideo);
 video.querySelector('source').addEventListener('error', hideUnavailableVideo);
 
+function validProfile(nickname, age) {
+    return typeof nickname === 'string' && nickname.trim().length > 0
+        && nickname.trim().length <= 20 && !/[\p{C}\r\n]/u.test(nickname)
+        && Number.isInteger(age) && age >= 1 && age <= 120;
+}
 function updateNextButton() {
-    nextButton.disabled = !photoData || !nicknameInput.value.trim();
+    nextButton.disabled = !validProfile(nicknameInput.value, ageInput.valueAsNumber);
 }
 nicknameInput.addEventListener('input', updateNextButton);
-photoInput.addEventListener('change', () => {
-    const version = ++photoVersion;
-    const file = photoInput.files[0];
-    photoData = '';
-    preview.hidden = true;
-    preview.removeAttribute('src');
-    placeholder.hidden = false;
-    setupStatus.textContent = '';
-    updateNextButton();
-    if (!file) return;
-    if (!file.type.startsWith('image/') || file.size > 5 * 1024 * 1024) {
-        setupStatus.textContent = '5MB 이하의 이미지 파일을 선택해 주세요.';
-        photoInput.value = '';
-        return;
-    }
-    setupStatus.textContent = '사진을 불러오고 있어요…';
-    const reader = new FileReader();
-    reader.onload = () => {
-        if (version !== photoVersion) return;
-        // Decode a separate image so an older selection cannot replace a newer one.
-        const image = new Image();
-        image.onload = () => {
-            if (version !== photoVersion) return;
-            photoData = reader.result;
-            preview.src = photoData;
-            preview.hidden = false;
-            placeholder.hidden = true;
-            setupStatus.textContent = '';
-            updateNextButton();
-        };
-        image.onerror = () => {
-            if (version !== photoVersion) return;
-            setupStatus.textContent = '사진을 표시할 수 없어요. JPG, PNG 등 다른 사진을 선택해 주세요.';
-        };
-        image.src = reader.result;
-    };
-    reader.onerror = () => {
-        if (version !== photoVersion) return;
-        setupStatus.textContent = '사진을 읽지 못했어요. 다시 선택해 주세요.';
-    };
-    reader.readAsDataURL(file);
-});
+ageInput.addEventListener('input', updateNextButton);
 
 $('#setup-form').addEventListener('submit', (event) => {
     event.preventDefault();
-    if (!photoData || !nicknameInput.value.trim()) return;
-    window.dearMeProfile = { nickname: nicknameInput.value.trim(), photo: photoData };
+    if (!validProfile(nicknameInput.value, ageInput.valueAsNumber)) return;
+    window.dearMeProfile = { nickname: nicknameInput.value.trim(), age: ageInput.valueAsNumber };
     $('#display-nickname').textContent = `${window.dearMeProfile.nickname}님`;
     showScreen('letter-screen', '#letter-title');
 });
@@ -178,6 +141,10 @@ $('#letter-form').addEventListener('submit', async (event) => {
     event.preventDefault();
     updateLetterButton();
     if (sendButton.disabled) return;
+    if (!validProfile(window.dearMeProfile?.nickname, window.dearMeProfile?.age)) {
+        showScreen('setup-screen', '#setup-title');
+        return;
+    }
     if (!window.confirm('정말 편지를 보낼까요?')) return;
     const message = letter.value.trim();
     sending = true;
@@ -196,7 +163,7 @@ $('#letter-form').addEventListener('submit', async (event) => {
         const response = await fetch('/api/chatkhu', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ message }),
+            body: JSON.stringify({ message, ...window.dearMeProfile }),
             signal: AbortSignal.timeout(65000),
         });
         let data;
@@ -209,7 +176,8 @@ $('#letter-form').addEventListener('submit', async (event) => {
         if (typeof data?.reply !== 'string' || !data.reply.trim()) throw new Error('답장 형식이 올바르지 않습니다.');
         if (!['normal', 'danger'].includes(data.safetyType)) throw new Error('답장의 안전 분류를 확인하지 못했습니다. 다시 시도해 주세요.');
         receiveReply({
-            nickname: window.dearMeProfile?.nickname || '나',
+            nickname: window.dearMeProfile.nickname,
+            age: window.dearMeProfile.age,
             message,
             reply: data.reply,
             safetyType: data.safetyType === 'danger' ? 'danger' : 'normal',
@@ -233,17 +201,20 @@ $('#letter-form').addEventListener('submit', async (event) => {
     }
 });
 
-// Recover the most recent reply when this tab is refreshed. Do not persist photos.
+// Recover only replies with a complete current profile.
 try {
     const saved = JSON.parse(sessionStorage.getItem(resultStorageKey));
     if (saved && saved.safetyType === 'normal' && typeof saved.reply === 'string' && saved.reply.trim()
-        && typeof saved.nickname === 'string' && typeof saved.message === 'string') {
+        && validProfile(saved.nickname, saved.age) && typeof saved.message === 'string') {
         latestResult = saved;
         flow = 'result';
         $('#letter-reply').textContent = saved.reply;
         $('#result-recipient').textContent = `${saved.nickname}님에게 도착한 편지`;
         letter.value = saved.message;
-        window.dearMeProfile = { nickname: saved.nickname, photo: null };
+        window.dearMeProfile = { nickname: saved.nickname, age: saved.age };
+        nicknameInput.value = saved.nickname;
+        ageInput.value = saved.age;
+        updateNextButton();
         $('#display-nickname').textContent = `${saved.nickname}님`;
         video.pause();
         showScreen('result-screen', '#reply-title');
