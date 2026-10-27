@@ -58,7 +58,8 @@ h2 { font-size: 1.5rem; margin-bottom: 10px; }
 .status:empty { display: none; }
 .privacy-note { color: #706d65; }
 .reply-panel { margin-top: 24px; }
-#send-video { display: block; width: 100%; max-height: 55vh; border-radius: 12px; background: #30352a; }
+#send-screen, #loading-screen { max-width: 960px; }
+#send-video { display: block; width: 100%; aspect-ratio: 16 / 9; object-fit: contain; max-height: 65vh; border-radius: 12px; background: #30352a; }
 #write-again-btn { width: 100%; }
 .asset-video { display: block; width: 100%; max-height: 45vh; border-radius: 12px; background: #30352a; }
 .waiting-stars { margin: 24px auto; font-size: 2rem; color: var(--primary-color); animation: starlight 2s ease-in-out infinite alternate; }

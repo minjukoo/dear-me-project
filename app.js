@@ -22,7 +22,9 @@ const endingVideo = $('#ending-video');
 const media = [sendVideo, loadingVideo, characterVideo, endingVideo];
 function playAsset(element, filename) {
     element.hidden = false;
+    element.muted = true;
     element.src = `/${filename}`;
+    element.load();
     element.play().catch(() => {
         if (element.error) element.dispatchEvent(new Event('error'));
         // Autoplay may be blocked; native controls and skip buttons remain usable.
@@ -36,7 +38,8 @@ function showResult() {
     playAsset(characterVideo, 'character-loop.mp4');
 }
 function finishSendVideo() {
-    if (flow !== 'pending') return;
+    // Ignore duplicate ended/error/skip events from the same playback.
+    if (flow !== 'pending' || sendFinished) return;
     sendFinished = true;
     sendVideo.pause();
     if (latestResult) showResult();
@@ -167,6 +170,7 @@ $('#letter-form').addEventListener('submit', async (event) => {
     latestResult = null;
     try { sessionStorage.removeItem(resultStorageKey); } catch { /* Optional storage. */ }
     showScreen('send-screen', '#send-title');
+    // Start playback without awaiting it; the API request runs in parallel.
     playAsset(sendVideo, 'letter-send.mp4');
     try {
         const response = await fetch('/api/chatkhu', {
