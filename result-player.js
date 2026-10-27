@@ -14,11 +14,14 @@
     let token = 0;
     let mouthTimer = null;
     let startupTimer = null;
+    let nextTimer = null;
     let currentUtterance = null;
     let speaking = false;
     let frame = 'normal';
     let backgroundPromise = null;
-
+    function navigate(id, heading) {
+        window.dispatchEvent(new CustomEvent('dearme:screen', { detail: { id, heading } }));
+    }
     function preload(filename) {
         if (cache.has(filename)) return cache.get(filename);
         const entry = { state: 'pending', image: new Image() };
@@ -42,8 +45,8 @@
     function clearTimers() {
         clearInterval(mouthTimer);
         clearTimeout(startupTimer);
-        mouthTimer = null;
-        startupTimer = null;
+        clearTimeout(nextTimer);
+        mouthTimer = startupTimer = nextTimer = null;
     }
     function stop() {
         token++;
@@ -52,92 +55,87 @@
         speaking = false;
         currentUtterance = null;
         setFrame('normal');
-        $('play-letter-btn').hidden = false;
-        $('stop-letter-btn').hidden = true;
-        $('character-select').disabled = false;
     }
-    function finish(message = '편지를 모두 읽었어요.') {
+    function finish(message = '') {
         clearTimers();
         speaking = false;
         currentUtterance = null;
+        const run = token;
         const smile = assets[character] && cache.get(assets[character].smile);
         setFrame(smile?.state === 'ready' ? 'smile' : 'hello');
-        $('player-status').textContent = message;
-        $('stop-letter-btn').hidden = true;
-        $('play-letter-btn').hidden = true;
-        $('result-actions').hidden = false;
-        $('character-select').disabled = false;
-        $('reply-text-panel').open = true;
-        $('result-screen').classList.add('letter-complete');
+        nextTimer = setTimeout(() => {
+            if (run !== token) return;
+            $('ending-status').textContent = message;
+            navigate('ending-screen', '#ending-title');
+        }, 900);
     }
     function chooseCharacter(value) {
         character = assets[value] ? value : '';
         if (character) Object.values(assets[character]).forEach(preload);
         setFrame('normal');
-        $('play-letter-btn').disabled = !character && supported;
+        $('character-next-btn').disabled = !character;
     }
     function prepare(data) {
         stop();
         result = data;
-        $('reply-text-panel').open = false;
-        $('result-screen').classList.remove('letter-complete');
-        loadBackground().catch(() => { /* Retry when the user downloads. */ });
-        $('result-actions').hidden = supported;
-        $('character-choice').hidden = data.gender === 'male' || data.gender === 'female';
-        $('character-select').value = assets[data.gender] ? data.gender : '';
+        loadBackground().catch(() => {});
         chooseCharacter(data.gender);
-        $('letter-subtitle').textContent = '재생하기를 누르면 편지를 읽어 드려요.';
-        $('player-status').textContent = supported
-            ? '기기의 음성으로 읽어요. 이미지가 없어도 음성과 답장 전문을 이용할 수 있어요.'
-            : '이 브라우저는 음성 재생을 지원하지 않아요. 답장 전문을 읽거나 편지지를 내려받아 주세요.';
-        $('play-letter-btn').hidden = !supported;
+        if (character) play();
+        else {
+            $('character-select').value = '';
+            navigate('character-select-screen', '#character-choice-title');
+        }
     }
     function play() {
-        if (!result || result.safetyType !== 'normal' || !supported || !character || speaking) return;
+        if (!result || result.safetyType !== 'normal' || !character || speaking) return;
         stop();
         const run = token;
-        // One utterance per sentence keeps subtitles aligned even without boundary events.
         const sentences = result.reply.match(/[^.!?。！？\n]+(?:[.!?。！？]+|\n+|$)/gu)?.map(s => s.trim()).filter(Boolean) || [result.reply];
-        const voice = synth.getVoices().find(v => v.lang.toLowerCase().startsWith('ko'));
+        const voice = supported && synth.getVoices().find(v => v.lang.toLowerCase().startsWith('ko'));
         speaking = true;
-        $('result-screen').classList.remove('letter-complete');
-        $('result-actions').hidden = true;
-        $('play-letter-btn').hidden = true;
-        $('stop-letter-btn').hidden = false;
-        $('character-select').disabled = true;
-        $('player-status').textContent = '음성을 준비하고 있어요…';
+        navigate('player-screen', '#player-title');
+        $('letter-subtitle').textContent = '';
+        $('player-status').textContent = supported ? '편지를 읽고 있어요.' : '음성이 지원되지 않아 자막으로 편지를 전해요.';
+        function animateMouth() {
+            if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+                mouthTimer = setInterval(() => setFrame(frame === 'mouth' ? 'normal' : 'mouth'), 250);
+            }
+        }
         function read(index) {
             if (run !== token) return;
-            if (index >= sentences.length) { finish(); return; }
+            if (index >= sentences.length) { finish(supported ? '' : '음성이 지원되지 않아 자막으로 편지를 전했어요.'); return; }
+            if (!supported) {
+                $('letter-subtitle').textContent = sentences[index];
+                animateMouth();
+                nextTimer = setTimeout(() => { clearTimers(); setFrame('normal'); read(index + 1); }, Math.max(1800, sentences[index].length * 100));
+                return;
+            }
             const utterance = new SpeechSynthesisUtterance(sentences[index]);
-            currentUtterance = utterance; // Keep a reference while the browser speaks.
+            currentUtterance = utterance;
             utterance.lang = 'ko-KR';
             utterance.rate = 0.95;
             if (voice) utterance.voice = voice;
             utterance.onstart = () => {
-                if (run !== token) return;
+                if (run !== token || currentUtterance !== utterance) return;
                 clearTimers();
-                $('player-status').textContent = '미래의 내가 편지를 읽고 있어요.';
                 $('letter-subtitle').textContent = sentences[index];
-                if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-                    mouthTimer = setInterval(() => setFrame(frame === 'mouth' ? 'normal' : 'mouth'), 250);
-                }
+                animateMouth();
             };
             utterance.onend = () => {
-                if (run !== token) return;
+                if (run !== token || currentUtterance !== utterance) return;
                 clearTimers();
                 setFrame('normal');
                 read(index + 1);
             };
             utterance.onerror = () => {
-                if (run !== token) return;
+                if (run !== token || currentUtterance !== utterance) return;
                 stop();
-                finish('음성을 재생하지 못했어요. 다시 재생하거나 답장 전문을 읽어 주세요.');
+                finish('자동 음성을 재생하지 못했어요. 다시 재생하거나 편지 받기로 전문을 읽어 주세요.');
             };
             startupTimer = setTimeout(() => {
                 if (run !== token) return;
                 stop();
-                finish('음성 재생을 시작하지 못했어요. 기기의 음성 설정을 확인하거나 다시 재생해 주세요.');
+                finish('음성을 시작하지 못했어요. 다시 재생하거나 편지 받기로 전문을 읽어 주세요.');
             }, 12000);
             try { synth.speak(utterance); }
             catch { utterance.onerror(); }
@@ -183,27 +181,28 @@
             const html = `<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escapeHTML(title)}</title><style>*{box-sizing:border-box}body{margin:0;padding:48px 20px;min-height:100vh;color:#333;background:#ecebf5 url('${background}') center/cover fixed no-repeat;font-family:system-ui,sans-serif;line-height:1.9}main{margin:auto;padding:clamp(24px,5vw,48px);max-width:740px;background:rgba(255,255,255,.94);border-radius:20px;box-shadow:0 12px 40px #28243b22}h1{font-size:24px}p{white-space:pre-wrap;overflow-wrap:anywhere}@media print{body{padding:0;background:white}main{box-shadow:none;max-width:none}}</style></head><body><main><h1>${escapeHTML(title)}</h1><p>${escapeHTML(savedResult.reply)}</p></main></body></html>`;
             saveFile(html, 'text/html;charset=utf-8', 'dear-me-letter.html');
         } catch {
-            $('player-status').textContent = '배경을 불러오지 못했어요. 다시 다운로드하거나 텍스트로 저장해 주세요.';
+            $('storage-status').textContent = '배경을 불러오지 못했어요. 다시 다운로드하거나 텍스트로 저장해 주세요.';
         } finally {
             button.disabled = false;
             button.textContent = '편지지 다운받기';
         }
     }
-    $('read-text-btn').addEventListener('click', () => {
+    $('character-select').addEventListener('change', event => chooseCharacter(event.target.value));
+    $('character-next-btn').addEventListener('click', play);
+    $('replay-letter-btn').addEventListener('click', play);
+    $('receive-letter-btn').addEventListener('click', () => {
         stop();
-        finish('답장 전문을 텍스트로 읽을 수 있어요.');
-        $('reply-text-panel').scrollIntoView({ block: 'start', behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth' });
+        navigate('result-screen', '#reply-title');
     });
     $('download-text-btn').addEventListener('click', () => {
         if (result) saveFile(result.reply, 'text/plain;charset=utf-8', 'dear-me-letter.txt');
     });
-    $('play-letter-btn').addEventListener('click', play);
-    $('replay-letter-btn').addEventListener('click', play);
-    $('stop-letter-btn').addEventListener('click', () => { stop(); finish('재생을 멈췄어요. 다시 재생할 수 있어요.'); });
-    $('character-select').addEventListener('change', event => chooseCharacter(event.target.value));
     $('download-letter-btn').addEventListener('click', download);
     document.addEventListener('visibilitychange', () => {
-        if (document.hidden && speaking) { stop(); finish('화면을 벗어나 재생을 멈췄어요. 다시 재생할 수 있어요.'); }
+        if (document.hidden && speaking) {
+            stop();
+            finish('화면을 벗어나 재생을 멈췄어요. 다시 재생할 수 있어요.');
+        }
     });
     window.addEventListener('pagehide', stop);
     window.DearMePlayer = { prepare, stop };

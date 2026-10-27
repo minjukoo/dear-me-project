@@ -20,18 +20,18 @@ const loadingVideo = $('#loading-video');
 const media = [sendVideo, loadingVideo];
 function playAsset(element, filename) {
     element.hidden = false;
+    if (element === sendVideo) $('#resume-send-btn').hidden = true;
     element.muted = true;
     element.src = `/${filename}`;
     element.load();
     element.play().catch(() => {
         if (element.error) element.dispatchEvent(new Event('error'));
-        // Autoplay may be blocked; native controls and skip buttons remain usable.
+        else if (element === sendVideo) $('#resume-send-btn').hidden = false;
     });
 }
 function showResult() {
     if (!latestResult || flow !== 'pending') return;
     flow = 'result';
-    showScreen('result-screen', '#reply-title');
     window.DearMePlayer.prepare(latestResult);
 }
 function finishSendVideo() {
@@ -47,7 +47,9 @@ function finishSendVideo() {
 }
 sendVideo.addEventListener('ended', finishSendVideo);
 sendVideo.addEventListener('error', finishSendVideo);
-$('#skip-send-btn').addEventListener('click', finishSendVideo);
+$('#resume-send-btn').addEventListener('click', () => {
+    sendVideo.play().then(() => { $('#resume-send-btn').hidden = true; }).catch(() => {});
+});
 [loadingVideo].forEach(element => {
     element.addEventListener('error', () => { element.hidden = true; });
 });
@@ -94,7 +96,7 @@ function receiveReply(result) {
 }
 
 function showScreen(id, heading) {
-    if (id !== 'result-screen') window.DearMePlayer.stop();
+    if (!['player-screen', 'character-select-screen', 'ending-screen', 'result-screen'].includes(id)) window.DearMePlayer.stop();
     media.forEach(element => { if (!element.closest(`#${id}`)) element.pause(); });
     document.querySelectorAll('.screen').forEach((screen) => {
         const active = screen.id === id;
@@ -104,6 +106,8 @@ function showScreen(id, heading) {
     $(heading).focus({ preventScroll: true });
     window.scrollTo({ top: 0, behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth' });
 }
+
+window.addEventListener('dearme:screen', event => showScreen(event.detail.id, event.detail.heading));
 
 function startSetup() {
     video.pause();
@@ -230,7 +234,6 @@ try {
         updateNextButton();
         $('#display-nickname').textContent = `${saved.nickname}님`;
         video.pause();
-        showScreen('result-screen', '#reply-title');
         window.DearMePlayer.prepare(saved);
     }
 } catch { /* Storage may be unavailable or contain an outdated record. */ }
