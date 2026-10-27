@@ -87,13 +87,12 @@
         <button id="resume-send-btn" class="cinema-fallback btn-primary" type="button" hidden>영상 재생 계속하기</button>
     </section>
 
-    <section id="loading-screen" class="screen" aria-labelledby="loading-title" hidden>
-        <div class="container">
-            <h2 id="loading-title" tabindex="-1">미래의 내가 답장을 쓰고 있어요</h2>
-            <p class="subtitle" role="status">시계와 별빛을 따라 조금만 기다려 주세요…</p>
-            <video id="loading-video" class="asset-video" autoplay loop muted playsinline controls preload="none" aria-label="답장 대기 영상"></video>
-            <div class="waiting-stars" aria-hidden="true">✦ ◷ ✧</div>
+    <section id="loading-screen" class="screen" aria-labelledby="loading-title" aria-busy="true" hidden>
+        <h2 id="loading-title" class="visually-hidden" tabindex="-1">미래의 내가 답장을 쓰고 있어요</h2>
+        <div class="clock-scene" aria-hidden="true">
+            <img class="clock-needle" src="/loading_needle.png" alt="" draggable="false">
         </div>
+        <p class="loading-caption" role="status">미래의 내가 답장을 쓰고 있어요. 잠시만 기다려 주세요.</p>
     </section>
 
     <section id="safety-screen" class="screen" aria-labelledby="safety-title" hidden>

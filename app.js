@@ -83,8 +83,7 @@ window.dearMeProfile = null;
 
 let flow = 'idle';
 let sendFinished = false;
-const loadingVideo = $('#loading-video');
-const media = [sendVideo, loadingVideo];
+const media = [sendVideo];
 function playAsset(element, filename) {
     element.hidden = false;
     if (element === sendVideo) $('#resume-send-btn').hidden = true;
@@ -109,16 +108,12 @@ function finishSendVideo() {
     if (latestResult) showResult();
     else {
         showScreen('loading-screen', '#loading-title');
-        playAsset(loadingVideo, 'loading-loop.mp4');
     }
 }
 sendVideo.addEventListener('ended', finishSendVideo);
 sendVideo.addEventListener('error', finishSendVideo);
 $('#resume-send-btn').addEventListener('click', () => {
     sendVideo.play().then(() => { $('#resume-send-btn').hidden = true; }).catch(() => {});
-});
-[loadingVideo].forEach(element => {
-    element.addEventListener('error', () => { element.hidden = true; });
 });
 $('#finish-letter-btn').addEventListener('click', () => {
     if (flow !== 'result') return;
