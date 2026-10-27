@@ -11,6 +11,27 @@ body { background-color: var(--bg-color); color: var(--text-color); display: fle
 [hidden] { display: none !important; }
 .screen { display: none; width: 100%; max-width: 600px; padding: 20px; }
 .screen.active { display: flex; flex-direction: column; align-items: center; animation: appear .3s ease-out; }
+#setup-screen, #letter-screen {
+    max-width: none;
+    min-height: 100vh;
+    min-height: 100svh;
+    justify-content: center;
+    padding: clamp(20px, 5vw, 48px) 20px;
+    background-color: #e8e7f1;
+    background-image: linear-gradient(rgba(26, 30, 47, .12), rgba(26, 30, 47, .12)), url('/background.png');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+}
+#setup-screen > .container, #letter-screen > .letter-wrapper {
+    width: 100%;
+    max-width: 560px;
+    background: rgba(255, 255, 255, .94);
+    border: 1px solid rgba(255, 255, 255, .8);
+    border-radius: 20px;
+    box-shadow: 0 12px 40px rgba(31, 35, 57, .12);
+}
+#letter-screen > .letter-wrapper { padding: clamp(18px, 4vw, 30px); }
 #opening-screen { position: fixed; inset: 0; width: 100%; height: 100%; background: #30352a; background: radial-gradient(ellipse at top, #7b8069, #292e25); z-index: 100; max-width: none; justify-content: center; }
 .video-container video { width: 100%; height: 100%; object-fit: cover; position: absolute; top: 0; left: 0; }
 .opening-overlay { position: relative; z-index: 101; text-align: center; color: white; padding: 30px; border-radius: 20px; background: rgba(0,0,0,.25); }
