@@ -127,9 +127,10 @@
             <p id="player-status" class="status" role="status"></p>
             <div class="player-controls">
                 <button id="play-letter-btn" class="btn-primary" type="button">재생하기</button>
+                <button id="read-text-btn" class="btn-primary" type="button">텍스트로 읽기</button>
                 <button id="stop-letter-btn" class="btn-primary" type="button" hidden>재생 중지</button>
             </div>
-            <details class="letter-paper reply-panel">
+            <details id="reply-text-panel" class="letter-paper reply-panel">
                 <summary>답장 전문 보기</summary>
                 <p id="letter-reply"></p>
             </details>
@@ -138,8 +139,9 @@
                 <button id="replay-letter-btn" class="btn-primary" type="button">영상 다시 보기</button>
                 <button id="finish-letter-btn" class="btn-primary" type="button">처음으로 돌아가기</button>
                 <button id="download-letter-btn" class="btn-primary" type="button">편지지 다운받기</button>
+                <button id="download-text-btn" class="btn-primary" type="button">텍스트(.txt) 저장</button>
             </div>
-            <p class="privacy-note">편지지는 HTML 파일로 저장되며, 브라우저에서 인쇄하거나 PDF로 저장할 수 있어요.</p>
+            <p class="privacy-note">편지지는 배경이 포함된 HTML 파일로 저장돼요. 오프라인으로 열거나 인쇄·PDF 저장할 수 있고, 텍스트(.txt)로도 받을 수 있어요.</p>
             <button id="write-again-btn" class="btn-primary" type="button">다시 편지 쓰기</button>
         </div>
     </section>

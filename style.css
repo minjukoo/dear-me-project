@@ -78,11 +78,13 @@ h2 { font-size: 1.5rem; margin-bottom: 10px; }
 .input-group { margin-top: 18px; text-align: left; }
 .input-group label { display: block; margin-bottom: 8px; font-size: .9rem; }
 
-#result-screen { max-width: 960px; }
+#result-screen { max-width: none; min-height: 100vh; min-height: 100svh; padding: clamp(20px, 5vw, 48px) 20px; background: #ecebf5 url('/start.png') center / cover no-repeat; }
+#result-screen > .letter-wrapper { max-width: 900px; padding: clamp(18px, 4vw, 32px); border-radius: 20px; background: rgba(255,255,255,.94); box-shadow: 0 12px 40px rgba(31,35,57,.12); }
+#reply-text-panel { scroll-margin-top: 24px; }
 #result-screen h2 { text-align: center; margin-bottom: 20px; }
 .character-stage { position: relative; isolation: isolate; width: 100%; min-height: 400px; aspect-ratio: 16 / 10; overflow: hidden; border-radius: 18px; background: #e6e4ef url('/background_room.png') center / cover no-repeat; display: grid; place-items: center; }
 #character-placeholder { padding: 28px; color: #494454; text-align: center; }
-#character-image { position: absolute; bottom: 0; height: 95%; max-width: 100%; object-fit: contain; }
+#character-image { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
 .character-finished { animation: appear .5s ease-out; }
 .letter-subtitle { z-index: 1; align-self: end; width: calc(100% - 32px); margin: 16px; padding: 16px 20px; border-radius: 12px; background: rgba(255,255,255,.94); color: #302e29; line-height: 1.7; text-align: center; max-height: 45%; overflow-y: auto; overflow-wrap: anywhere; }
 .player-controls, .result-actions { display: flex; flex-wrap: wrap; gap: 12px; }

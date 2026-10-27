@@ -2,8 +2,8 @@
 (() => {
     const $ = (id) => document.getElementById(id);
     const assets = {
-        male: { normal: 'male_normal.jpg', mouth: 'male_mouth.png', smile: 'male_smile.png', hello: 'male_hello.jpg' },
-        female: { normal: 'female_normal.jpg', mouth: 'female_mouth.jpg', smile: 'female_smile.jpg', hello: 'female_hello.jpg' },
+        male: { normal: 'male_normal.png', mouth: 'male_mouth.png', smile: 'male_smile.png', hello: 'male_hello.png' },
+        female: { normal: 'female_normal.png', mouth: 'female_mouth.png', smile: 'female_smile.png', hello: 'female_hello.png' },
     };
     const synth = window.speechSynthesis;
     const supported = !!synth && typeof window.SpeechSynthesisUtterance === 'function';
@@ -17,6 +17,7 @@
     let currentUtterance = null;
     let speaking = false;
     let frame = 'normal';
+    let backgroundPromise = null;
 
     function preload(filename) {
         if (cache.has(filename)) return cache.get(filename);
@@ -66,6 +67,8 @@
         $('play-letter-btn').hidden = true;
         $('result-actions').hidden = false;
         $('character-select').disabled = false;
+        $('reply-text-panel').open = true;
+        $('result-screen').classList.add('letter-complete');
     }
     function chooseCharacter(value) {
         character = assets[value] ? value : '';
@@ -76,6 +79,9 @@
     function prepare(data) {
         stop();
         result = data;
+        $('reply-text-panel').open = false;
+        $('result-screen').classList.remove('letter-complete');
+        loadBackground().catch(() => { /* Retry when the user downloads. */ });
         $('result-actions').hidden = supported;
         $('character-choice').hidden = data.gender === 'male' || data.gender === 'female';
         $('character-select').value = assets[data.gender] ? data.gender : '';
@@ -94,6 +100,7 @@
         const sentences = result.reply.match(/[^.!?。！？\n]+(?:[.!?。！？]+|\n+|$)/gu)?.map(s => s.trim()).filter(Boolean) || [result.reply];
         const voice = synth.getVoices().find(v => v.lang.toLowerCase().startsWith('ko'));
         speaking = true;
+        $('result-screen').classList.remove('letter-complete');
         $('result-actions').hidden = true;
         $('play-letter-btn').hidden = true;
         $('stop-letter-btn').hidden = false;
@@ -140,19 +147,56 @@
     function escapeHTML(value) {
         return String(value).replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
     }
-    function download() {
-        if (!result) return;
-        const title = `${result.age}살의 ${result.nickname}에게`;
-        const html = `<!doctype html><html lang="ko"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escapeHTML(title)}</title><style>body{margin:40px auto;padding:32px;max-width:700px;color:#333;background:#faf8f1;font-family:system-ui,sans-serif;line-height:1.9}h1{font-size:24px}p{white-space:pre-wrap;overflow-wrap:anywhere}@media print{body{background:white;margin:0}}</style><h1>${escapeHTML(title)}</h1><p>${escapeHTML(result.reply)}</p></html>`;
-        const url = URL.createObjectURL(new Blob([html], { type: 'text/html;charset=utf-8' }));
+    function saveFile(content, type, filename) {
+        const url = URL.createObjectURL(new Blob([content], { type }));
         const link = document.createElement('a');
         link.href = url;
-        link.download = 'dear-me-letter.html';
+        link.download = filename;
         document.body.append(link);
         link.click();
         link.remove();
         setTimeout(() => URL.revokeObjectURL(url), 1000);
     }
+    function loadBackground() {
+        if (!backgroundPromise) {
+            backgroundPromise = fetch('/start.png').then(response => {
+                if (!response.ok) throw new Error('background unavailable');
+                return response.blob();
+            }).then(blob => new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = reject;
+                reader.readAsDataURL(blob);
+            })).catch(error => { backgroundPromise = null; throw error; });
+        }
+        return backgroundPromise;
+    }
+    async function download() {
+        if (!result) return;
+        const savedResult = result;
+        const button = $('download-letter-btn');
+        button.disabled = true;
+        button.textContent = '편지지 준비 중…';
+        try {
+            const background = await loadBackground();
+            const title = `${savedResult.age}살의 ${savedResult.nickname}에게`;
+            const html = `<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escapeHTML(title)}</title><style>*{box-sizing:border-box}body{margin:0;padding:48px 20px;min-height:100vh;color:#333;background:#ecebf5 url('${background}') center/cover fixed no-repeat;font-family:system-ui,sans-serif;line-height:1.9}main{margin:auto;padding:clamp(24px,5vw,48px);max-width:740px;background:rgba(255,255,255,.94);border-radius:20px;box-shadow:0 12px 40px #28243b22}h1{font-size:24px}p{white-space:pre-wrap;overflow-wrap:anywhere}@media print{body{padding:0;background:white}main{box-shadow:none;max-width:none}}</style></head><body><main><h1>${escapeHTML(title)}</h1><p>${escapeHTML(savedResult.reply)}</p></main></body></html>`;
+            saveFile(html, 'text/html;charset=utf-8', 'dear-me-letter.html');
+        } catch {
+            $('player-status').textContent = '배경을 불러오지 못했어요. 다시 다운로드하거나 텍스트로 저장해 주세요.';
+        } finally {
+            button.disabled = false;
+            button.textContent = '편지지 다운받기';
+        }
+    }
+    $('read-text-btn').addEventListener('click', () => {
+        stop();
+        finish('답장 전문을 텍스트로 읽을 수 있어요.');
+        $('reply-text-panel').scrollIntoView({ block: 'start', behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth' });
+    });
+    $('download-text-btn').addEventListener('click', () => {
+        if (result) saveFile(result.reply, 'text/plain;charset=utf-8', 'dear-me-letter.txt');
+    });
     $('play-letter-btn').addEventListener('click', play);
     $('replay-letter-btn').addEventListener('click', play);
     $('stop-letter-btn').addEventListener('click', () => { stop(); finish('재생을 멈췄어요. 다시 재생할 수 있어요.'); });
