@@ -123,9 +123,11 @@ h2 { font-size: 1.5rem; margin-bottom: 10px; }
 /* Both clock assets share a 1672x941 canvas. Preserve that coordinate system. */
 #loading-screen { position: fixed; inset: 0; width: 100%; height: 100%; min-height: 0; max-width: none; padding: 0; z-index: 50; overflow: hidden; background: #e8e7f1; }
 #loading-screen.active { animation: none; }
-.clock-scene { position: absolute; left: 50%; top: 50%; width: max(100vw, 177.683316dvh); height: max(56.279904vw, 100dvh); transform: translate(-50%, -50%); background: url('/loading_bg.png') center / 100% 100% no-repeat; }
-.clock-needle { position: absolute; left: -.239234%; top: .425080%; width: 100%; height: 100%; max-width: none; transform-origin: 49.760766% 51.753454%; animation: clock-turn 8s linear infinite; animation-play-state: paused; }
-#loading-screen.active .clock-needle { animation-play-state: running; }
+.clock-scene { position: absolute; left: 50%; top: 50%; width: max(100vw, 177.683316dvh); height: max(56.279904vw, 100dvh); transform: translate(-50%, -50%); }
+.clock-needle { visibility: hidden; position: absolute; left: -.239234%; top: .425080%; width: 100%; height: 100%; max-width: none; transform-origin: 49.760766% 51.753454%; animation: clock-turn 8s linear infinite; animation-play-state: paused; }
+#loading-screen.active.clock-waiting .clock-needle { animation-play-state: running; }
+.clock-scene.background-ready .clock-needle { visibility: visible; }
+.clock-background { position: absolute; inset: 0; width: 100%; height: 100%; }
 .loading-caption { position: absolute; bottom: max(24px, env(safe-area-inset-bottom)); left: 50%; transform: translateX(-50%); width: max-content; max-width: calc(100% - 40px); padding: 12px 20px; border-radius: 14px; color: #302e29; background: rgba(255,255,255,.9); text-align: center; line-height: 1.6; }
 @keyframes clock-turn { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 @media (max-width: 1024px) and (orientation: portrait) {
@@ -133,3 +135,11 @@ h2 { font-size: 1.5rem; margin-bottom: 10px; }
     .clock-scene { width: 100%; height: auto; aspect-ratio: 1672 / 941; }
 }
 @media (prefers-reduced-motion: reduce) { .clock-needle { animation: none; } }
+
+#link-video { position: absolute; inset: 0; z-index: 2; width: 100%; height: 100%; object-fit: cover; opacity: 0; pointer-events: none; transition: opacity .45s ease; }
+#link-video.link-visible { opacity: 1; }
+#loading-screen:not(.clock-waiting) .loading-caption { visibility: hidden; }
+@media (max-width: 1024px) and (orientation: portrait) {
+    #link-video { inset: auto; top: 50%; left: 0; width: 100%; height: auto; aspect-ratio: 16 / 9; transform: translateY(-50%); }
+}
+@media (prefers-reduced-motion: reduce) { #link-video { transition: none; } }

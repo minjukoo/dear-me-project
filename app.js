@@ -83,7 +83,53 @@ window.dearMeProfile = null;
 
 let flow = 'idle';
 let sendFinished = false;
-const media = [sendVideo];
+const linkVideo = $('#link-video');
+const clockScene = document.querySelector('.clock-scene');
+let linkStarted = false;
+let linkFinished = false;
+let sendRun = 0;
+const media = [sendVideo, linkVideo];
+// Decode the background before exposing the clock or its independently loaded hand.
+const clockDecoded = $('#loading-background').decode().then(() => {
+    clockScene.classList.add('background-ready');
+    return true;
+}).catch(() => false);
+clockDecoded.then(ready => {
+    if (ready && flow === 'pending' && linkFinished && $('#loading-screen').classList.contains('active')) {
+        linkVideo.classList.remove('link-visible');
+    }
+});
+async function waitForClock() {
+    let timer;
+    try { return await Promise.race([clockDecoded, new Promise(resolve => { timer = setTimeout(() => resolve(false), 10000); })]); }
+    finally { clearTimeout(timer); }
+}
+async function finishLink() {
+    if (flow !== 'pending' || !linkStarted || linkFinished) return;
+    linkFinished = true;
+    linkVideo.pause(); // Retain the last decoded frame while the background loads.
+    const run = sendRun;
+    if (latestResult) { showResult(); return; }
+    const backgroundReady = await waitForClock();
+    if (flow !== 'pending' || run !== sendRun) return;
+    if (latestResult) { showResult(); return; }
+    showScreen('loading-screen', '#loading-title');
+    // The video overlays the decoded clock: fading reveals it without a blank frame.
+    if (backgroundReady || linkVideo.error) linkVideo.classList.remove('link-visible');
+    $('#loading-screen').classList.add('clock-waiting');
+}
+linkVideo.addEventListener('playing', () => {
+    if (flow !== 'pending' || !linkStarted || linkFinished) return;
+    linkVideo.classList.add('link-visible');
+    showScreen('loading-screen', '#loading-title');
+});
+linkVideo.addEventListener('ended', finishLink);
+linkVideo.addEventListener('error', finishLink);
+function startLink() {
+    linkStarted = true;
+    if (linkVideo.error) { finishLink(); return; }
+    linkVideo.play().catch(finishLink);
+}
 function playAsset(element, filename) {
     element.hidden = false;
     if (element === sendVideo) $('#resume-send-btn').hidden = true;
@@ -96,7 +142,7 @@ function playAsset(element, filename) {
     });
 }
 function showResult() {
-    if (!latestResult || flow !== 'pending') return;
+    if (!latestResult || flow !== 'pending' || (linkStarted && !linkFinished)) return;
     flow = 'result';
     window.DearMePlayer.prepare(latestResult);
 }
@@ -106,9 +152,7 @@ function finishSendVideo() {
     sendFinished = true;
     sendVideo.pause();
     if (latestResult) showResult();
-    else {
-        showScreen('loading-screen', '#loading-title');
-    }
+    else startLink();
 }
 sendVideo.addEventListener('ended', finishSendVideo);
 sendVideo.addEventListener('error', finishSendVideo);
@@ -154,7 +198,7 @@ function receiveReply(result) {
     } catch {
         $('#storage-status').textContent = '브라우저 임시 저장을 사용할 수 없어 이 화면에서만 답장을 볼 수 있어요.';
     }
-    if (sendFinished) showResult();
+    if (sendFinished && (!linkStarted || linkFinished)) showResult();
 }
 
 function showScreen(id, heading) {
@@ -258,6 +302,12 @@ $('#letter-form').addEventListener('submit', async (event) => {
     $('#letter-form').setAttribute('aria-busy', 'true');
     flow = 'pending';
     sendFinished = false;
+    linkStarted = false;
+    linkFinished = false;
+    sendRun++;
+    $('#loading-screen').classList.remove('clock-waiting');
+    linkVideo.classList.remove('link-visible');
+    linkVideo.currentTime = 0;
     latestResult = null;
     try { sessionStorage.removeItem(resultStorageKey); } catch { /* Optional storage. */ }
     showScreen('send-screen', '#send-title');

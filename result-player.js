@@ -57,18 +57,18 @@
         currentUtterance = null;
         setFrame('normal');
     }
-    function finish(message = '') {
+    function finish(message = '', hold = 900, pose = 'smile') {
         clearTimers();
         speaking = false;
         currentUtterance = null;
         const run = token;
-        const smile = assets[character] && cache.get(assets[character].smile);
-        setFrame(smile?.state === 'ready' ? 'smile' : 'hello');
+        const preferred = assets[character] && cache.get(assets[character][pose]);
+        setFrame(preferred?.state === 'ready' ? pose : 'hello');
         nextTimer = setTimeout(() => {
             if (run !== token) return;
             $('ending-status').textContent = message;
             navigate('ending-screen', '#ending-title');
-        }, 900);
+        }, hold);
     }
     function chooseCharacter(value) {
         character = assets[value] ? value : '';
@@ -102,9 +102,46 @@
                 mouthTimer = setInterval(() => setFrame(frame === 'mouth' ? 'normal' : 'mouth'), 250);
             }
         }
+        function goodbye() {
+            if (run !== token) return;
+            clearTimers();
+            setFrame('hello');
+            $('letter-subtitle').textContent = '그럼 안녕.';
+            if (!supported) {
+                finish('음성이 지원되지 않아 자막으로 편지를 전했어요.', 3500, 'hello');
+                return;
+            }
+            const utterance = new SpeechSynthesisUtterance('그럼 안녕.');
+            currentUtterance = utterance;
+            utterance.lang = 'ko-KR';
+            utterance.rate = 0.9;
+            if (voice) utterance.voice = voice;
+            utterance.onstart = () => {
+                if (run !== token || currentUtterance !== utterance) return;
+                clearTimers();
+                setFrame('hello');
+            };
+            utterance.onend = () => {
+                if (run !== token || currentUtterance !== utterance) return;
+                finish('', 2800, 'hello');
+            };
+            utterance.onerror = () => {
+                if (run !== token || currentUtterance !== utterance) return;
+                stop();
+                $('letter-subtitle').textContent = '그럼 안녕.';
+                finish('', 2800, 'hello');
+            };
+            startupTimer = setTimeout(() => {
+                if (run !== token || currentUtterance !== utterance) return;
+                stop();
+                $('letter-subtitle').textContent = '그럼 안녕.';
+                finish('', 2800, 'hello');
+            }, 12000);
+            try { synth.speak(utterance); } catch { utterance.onerror(); }
+        }
         function read(index) {
             if (run !== token) return;
-            if (index >= sentences.length) { finish(supported ? '' : '음성이 지원되지 않아 자막으로 편지를 전했어요.'); return; }
+            if (index >= sentences.length) { goodbye(); return; }
             if (!supported) {
                 $('letter-subtitle').textContent = sentences[index];
                 animateMouth();
