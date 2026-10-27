@@ -306,26 +306,18 @@ $('#letter-form').addEventListener('submit', async (event) => {
     }
 });
 
-// Recover only replies with a complete current profile.
-try {
-    const saved = JSON.parse(sessionStorage.getItem(resultStorageKey));
-    if (saved && saved.safetyType === 'normal' && typeof saved.reply === 'string' && saved.reply.trim()
-        && validProfile(saved.nickname, saved.age, saved.gender) && typeof saved.message === 'string') {
-        latestResult = saved;
-        flow = 'result';
-        $('#letter-reply').textContent = saved.reply;
-        $('#result-recipient').textContent = `${saved.nickname}님에게 도착한 편지`;
-        letter.value = saved.message;
-        window.dearMeProfile = { nickname: saved.nickname, age: saved.age, gender: saved.gender || 'undisclosed' };
-        nicknameInput.value = saved.nickname;
-        ageInput.value = saved.age;
-        genderInput.value = saved.gender || 'undisclosed';
-        updateNextButton();
-        $('#display-nickname').textContent = `${saved.nickname}님`;
-        video.pause();
-        window.DearMePlayer.prepare(saved);
-    }
-} catch { /* Storage may be unavailable or contain an outdated record. */ }
+// A newly loaded page always starts a fresh visit at the paused opening.
+// Do not clear storage in beforeunload: cancelling must preserve this session.
+try { sessionStorage.removeItem(resultStorageKey); } catch { /* Optional storage. */ }
+$('#setup-form').reset();
+$('#letter-form').reset();
+updateNextButton();
+updateLetterButton();
+window.addEventListener('beforeunload', event => {
+    // Browsers supply the text and may suppress prompts without user activation.
+    event.preventDefault();
+    event.returnValue = '';
+});
 
 if ($('#opening-screen').classList.contains('active')) {
     video.muted = true;

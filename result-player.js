@@ -191,10 +191,13 @@
     $('character-select').addEventListener('change', event => chooseCharacter(event.target.value));
     $('character-next-btn').addEventListener('click', play);
     $('replay-letter-btn').addEventListener('click', play);
-    $('receive-letter-btn').addEventListener('click', () => {
+    function receiveLetter() {
+        if (!result || result.safetyType !== 'normal') return;
         stop();
         navigate('result-screen', '#reply-title');
-    });
+    }
+    $('receive-letter-btn').addEventListener('click', receiveLetter);
+    $('skip-letter-btn').addEventListener('click', receiveLetter);
     $('download-text-btn').addEventListener('click', () => {
         if (result) saveFile(result.reply, 'text/plain;charset=utf-8', 'dear-me-letter.txt');
     });
