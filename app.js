@@ -17,9 +17,7 @@ window.dearMeProfile = null;
 let flow = 'idle';
 let sendFinished = false;
 const loadingVideo = $('#loading-video');
-const characterVideo = $('#character-video');
-const endingVideo = $('#ending-video');
-const media = [sendVideo, loadingVideo, characterVideo, endingVideo];
+const media = [sendVideo, loadingVideo];
 function playAsset(element, filename) {
     element.hidden = false;
     element.muted = true;
@@ -34,8 +32,7 @@ function showResult() {
     if (!latestResult || flow !== 'pending') return;
     flow = 'result';
     showScreen('result-screen', '#reply-title');
-    endingVideo.hidden = true;
-    playAsset(characterVideo, 'character-loop.mp4');
+    window.DearMePlayer.prepare(latestResult);
 }
 function finishSendVideo() {
     // Ignore duplicate ended/error/skip events from the same playback.
@@ -51,7 +48,7 @@ function finishSendVideo() {
 sendVideo.addEventListener('ended', finishSendVideo);
 sendVideo.addEventListener('error', finishSendVideo);
 $('#skip-send-btn').addEventListener('click', finishSendVideo);
-[loadingVideo, characterVideo, endingVideo].forEach(element => {
+[loadingVideo].forEach(element => {
     element.addEventListener('error', () => { element.hidden = true; });
 });
 $('#finish-letter-btn').addEventListener('click', () => {
@@ -97,6 +94,7 @@ function receiveReply(result) {
 }
 
 function showScreen(id, heading) {
+    if (id !== 'result-screen') window.DearMePlayer.stop();
     media.forEach(element => { if (!element.closest(`#${id}`)) element.pause(); });
     document.querySelectorAll('.screen').forEach((screen) => {
         const active = screen.id === id;
@@ -233,7 +231,7 @@ try {
         $('#display-nickname').textContent = `${saved.nickname}님`;
         video.pause();
         showScreen('result-screen', '#reply-title');
-        playAsset(characterVideo, 'character-loop.mp4');
+        window.DearMePlayer.prepare(saved);
     }
 } catch { /* Storage may be unavailable or contain an outdated record. */ }
 

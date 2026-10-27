@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dear, Me - 내가, 나에게</title>
     <link rel="stylesheet" href="style.css">
+    <script src="result-player.js" defer></script>
     <script src="app.js" defer></script>
 </head>
 <body>
@@ -109,14 +110,36 @@
     <section id="result-screen" class="screen" aria-labelledby="reply-title" hidden>
         <div class="letter-wrapper">
             <p id="result-recipient" class="letter-header"></p>
-            <video id="character-video" class="asset-video" loop muted playsinline controls preload="none" aria-label="미래의 나 캐릭터 영상" hidden></video>
-            <video id="ending-video" class="asset-video" muted playsinline controls preload="none" aria-label="편지 마무리 영상" hidden></video>
-            <section id="reply-panel" class="letter-paper reply-panel" aria-labelledby="reply-title">
-                <h3 id="reply-title" tabindex="-1">나에게 도착한 답장</h3>
+            <h2 id="reply-title" tabindex="-1">나에게 도착한 답장</h2>
+            <div id="character-choice" class="input-group" hidden>
+                <label for="character-select">편지를 읽어 줄 캐릭터</label>
+                <select id="character-select">
+                    <option value="">캐릭터를 선택해 주세요</option>
+                    <option value="male">남자 캐릭터</option>
+                    <option value="female">여자 캐릭터</option>
+                </select>
+            </div>
+            <div id="character-stage" class="character-stage">
+                <p id="character-placeholder">이미지가 준비되면 이곳에 미래의 내가 나타나요.</p>
+                <img id="character-image" alt="미래의 나 캐릭터" hidden>
+                <div id="letter-subtitle" class="letter-subtitle" role="status" aria-live="polite">재생하기를 누르면 편지를 읽어 드려요.</div>
+            </div>
+            <p id="player-status" class="status" role="status"></p>
+            <div class="player-controls">
+                <button id="play-letter-btn" class="btn-primary" type="button">재생하기</button>
+                <button id="stop-letter-btn" class="btn-primary" type="button" hidden>재생 중지</button>
+            </div>
+            <details class="letter-paper reply-panel">
+                <summary>답장 전문 보기</summary>
                 <p id="letter-reply"></p>
-            </section>
+            </details>
             <p id="storage-status" class="status" role="status"></p>
-            <button id="finish-letter-btn" class="btn-primary" type="button">답장 읽기 마치기</button>
+            <div id="result-actions" class="result-actions" hidden>
+                <button id="replay-letter-btn" class="btn-primary" type="button">영상 다시 보기</button>
+                <button id="finish-letter-btn" class="btn-primary" type="button">처음으로 돌아가기</button>
+                <button id="download-letter-btn" class="btn-primary" type="button">편지지 다운받기</button>
+            </div>
+            <p class="privacy-note">편지지는 HTML 파일로 저장되며, 브라우저에서 인쇄하거나 PDF로 저장할 수 있어요.</p>
             <button id="write-again-btn" class="btn-primary" type="button">다시 편지 쓰기</button>
         </div>
     </section>
