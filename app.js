@@ -9,6 +9,14 @@ const letter = $('#letter-textarea');
 const sendButton = $('#send-letter-btn');
 const letterStatus = $('#letter-status');
 const fullscreenButton = $('#fullscreen-toggle');
+const orientationHint = $('#orientation-hint');
+let orientationAttempt = 0;
+let orientationRequested = false;
+let orientationFailed = false;
+function updateOrientationHint() {
+    orientationHint.hidden = !fullscreenElement() || !orientationFailed
+        || !window.matchMedia('(orientation: portrait)').matches;
+}
 function fullscreenElement() {
     return document.fullscreenElement || document.webkitFullscreenElement;
 }
@@ -17,6 +25,34 @@ function updateFullscreenButton() {
     fullscreenButton.textContent = active ? '전체화면 나가기' : '전체화면';
     fullscreenButton.setAttribute('aria-pressed', String(active));
     fullscreenButton.title = active ? 'ESC로도 나갈 수 있어요' : '전체화면으로 보기';
+    if (!active) {
+        orientationAttempt++;
+        if (orientationRequested) {
+            try { window.screen.orientation?.unlock?.(); } catch { /* Unsupported browser. */ }
+        }
+        orientationRequested = false;
+        orientationFailed = false;
+    }
+    updateOrientationHint();
+}
+async function tryLandscapeLock() {
+    if (!fullscreenElement() || !(navigator.maxTouchPoints > 0
+        || window.matchMedia('(pointer: coarse)').matches)) return;
+    const attempt = ++orientationAttempt;
+    orientationRequested = true;
+    try {
+        if (!window.screen.orientation?.lock) throw new Error('unsupported');
+        await window.screen.orientation.lock('landscape');
+        if (attempt !== orientationAttempt || !fullscreenElement()) {
+            try { window.screen.orientation?.unlock?.(); } catch { /* No active lock. */ }
+            return;
+        }
+        orientationFailed = false;
+    } catch {
+        if (attempt !== orientationAttempt || !fullscreenElement()) return;
+        orientationFailed = true;
+    }
+    updateOrientationHint();
 }
 async function enterFullscreen() {
     const root = document.documentElement;
@@ -27,6 +63,7 @@ async function enterFullscreen() {
     try { await request.call(root); }
     catch { $('#fullscreen-status').textContent = '전체화면을 사용할 수 없어 일반 화면으로 계속합니다.'; }
     updateFullscreenButton();
+    await tryLandscapeLock();
 }
 fullscreenButton.addEventListener('click', async () => {
     if (!fullscreenElement()) { enterFullscreen(); return; }
@@ -37,6 +74,7 @@ fullscreenButton.addEventListener('click', async () => {
 });
 document.addEventListener('fullscreenchange', updateFullscreenButton);
 document.addEventListener('webkitfullscreenchange', updateFullscreenButton);
+window.addEventListener('resize', updateOrientationHint);
 let sending = false;
 let latestResult = null;
 const resultStorageKey = 'dearMe.letterResult';

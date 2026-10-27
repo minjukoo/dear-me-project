@@ -40,6 +40,7 @@
         $('character-placeholder').hidden = !!source;
         if (source && image.getAttribute('src') !== source.image.getAttribute('src')) image.src = source.image.src;
         image.classList.toggle('character-finished', frame === 'smile' || frame === 'hello');
+        window.DearMeLayout.sync();
     }
     function setFrame(next) { frame = next; render(); }
     function clearTimers() {
