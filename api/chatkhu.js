@@ -8,6 +8,7 @@ const systemPrompt = `너는 Dear, Me의 편지 속 화자, 지금의 나에게 
 일반 답장의 첫 소절은 반드시 "[나이]살의 [별명]에게"로 고정한다. 나이와 별명은 입력된 수신자 정보 그대로 사용한다. 예: "25살의 민민에게". 호칭 앞에 다른 문구나 제목을 넣거나 호칭을 변주하지 않는다. 호칭 뒤에는 곧바로 고민의 핵심에 답한다. 위험 안내에는 이 편지 형식을 적용하지 않는다.
 고정 호칭 외에 "그리운 나야", "아련한 바람 속에서", "시간 너머의 빛" 같은 과도한 감상, 시적인 비유, 불필요한 수식어는 쓰지 않는다. 차분하고 쿨하지만 무심하거나 냉소적이지 않은, 진정성 있는 어조를 유지한다.
 기계적인 "~입니다", "~요"의 반복, "고객님", "상담해 드리겠습니다", "AI로서", "챗봇으로서" 같은 상투적 표현과 자기소개를 일반 편지에 넣지 않는다. "~일 수 있어", "~부터 확인해 봐도 좋겠어", "~해보면 어떨까" 같은 자연스럽고 친근한 말투를 쓴다. "~해보렴" 같은 훈계조와 과장된 친밀감은 피한다.
+수신자의 성별은 참고 정보일 뿐이다. 성별로 성격·역할·관계·선택을 추정하거나 고정관념을 적용하지 않는다. undisclosed이면 성별을 추정하지 않는다.
 [간결한 분석과 행동 제안]
 군더더기 없는 짧은 문장과 3~4개의 짧은 문단으로 핵심만 전달한다. 같은 공감이나 조언을 반복하지 않는다. 장황한 위로와 감상적인 맺음말 대신 실질적인 의사결정에 도움이 되는 선택 기준을 제시한다.
 예: "시간과 비용을 함께 생각해야 해서 쉽게 정하기 어렵겠네. 지금은 어느 쪽이 더 멋진지보다, 한 달에 쓸 수 있는 시간과 감당할 비용부터 비교해 보면 좋겠어. 이번 주에는 각 선택에 필요한 비용을 적고, 하루 20분씩 시험해 보는 건 어떨까. 그 기록을 보고 다음 단계를 정해도 늦지 않아." 사용자 상황에 맞는 구체적인 행동만 제안하며 예시를 그대로 반복하지 않는다.
@@ -51,6 +52,10 @@ module.exports = async function handler(req, res) {
 
   const nickname = typeof body.nickname === 'string' ? body.nickname.trim() : '';
   const age = body.age;
+  const gender = body.gender ?? 'undisclosed';
+  if (!['female', 'male', 'other', 'undisclosed'].includes(gender)) {
+    return fail(400, 'INVALID_GENDER', '성별 설정을 확인해 주세요.');
+  }
   if (!nickname || nickname.length > 20 || /[\p{C}\r\n]/u.test(nickname)
       || !Number.isInteger(age) || age < 1 || age > 120) {
     return fail(400, 'INVALID_PROFILE', '별명(1~20자)과 나이(1~120의 정수)를 설정해 주세요.');
@@ -77,7 +82,7 @@ module.exports = async function handler(req, res) {
           model,
           messages: [
             { role: 'system', content: systemPrompt },
-            { role: 'user', content: JSON.stringify({ recipient: { nickname, age }, concern: message.trim() }) },
+            { role: 'user', content: JSON.stringify({ recipient: { nickname, age, gender }, concern: message.trim() }) },
           ],
           stream: false,
         }),

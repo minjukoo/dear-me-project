@@ -1,6 +1,8 @@
 const $ = (selector) => document.querySelector(selector);
 const video = $('#opening-video');
 const ageInput = $('#age-input');
+const genderInput = $('#gender-input');
+const genders = ['female', 'male', 'other', 'undisclosed'];
 const nicknameInput = $('#nickname-input');
 const nextButton = $('#next-to-letter-btn');
 const letter = $('#letter-textarea');
@@ -106,28 +108,35 @@ function startSetup() {
     video.pause();
     showScreen('setup-screen', '#setup-title');
 }
-$('#skip-opening-btn').addEventListener('click', startSetup);
-video.addEventListener('ended', startSetup);
-// opening.mp4 is optional: keep the opening title and Start button usable.
-function hideUnavailableVideo() { video.hidden = true; }
+function showStart() {
+    if (!$('#opening-screen').classList.contains('active')) return;
+    video.pause();
+    showScreen('start-screen', '#start-btn');
+}
+$('#start-btn').addEventListener('click', startSetup);
+$('#skip-opening-btn').addEventListener('click', showStart);
+video.addEventListener('ended', showStart);
+// Missing video or autoplay restrictions must not leave a blank opening.
+function hideUnavailableVideo() { showStart(); }
 video.addEventListener('error', hideUnavailableVideo);
 video.querySelector('source').addEventListener('error', hideUnavailableVideo);
 
-function validProfile(nickname, age) {
+function validProfile(nickname, age, gender = 'undisclosed') {
     return typeof nickname === 'string' && nickname.trim().length > 0
         && nickname.trim().length <= 20 && !/[\p{C}\r\n]/u.test(nickname)
-        && Number.isInteger(age) && age >= 1 && age <= 120;
+        && Number.isInteger(age) && age >= 1 && age <= 120 && genders.includes(gender);
 }
 function updateNextButton() {
-    nextButton.disabled = !validProfile(nicknameInput.value, ageInput.valueAsNumber);
+    nextButton.disabled = !validProfile(nicknameInput.value, ageInput.valueAsNumber, genderInput.value);
 }
 nicknameInput.addEventListener('input', updateNextButton);
 ageInput.addEventListener('input', updateNextButton);
+genderInput.addEventListener('change', updateNextButton);
 
 $('#setup-form').addEventListener('submit', (event) => {
     event.preventDefault();
-    if (!validProfile(nicknameInput.value, ageInput.valueAsNumber)) return;
-    window.dearMeProfile = { nickname: nicknameInput.value.trim(), age: ageInput.valueAsNumber };
+    if (!validProfile(nicknameInput.value, ageInput.valueAsNumber, genderInput.value)) return;
+    window.dearMeProfile = { nickname: nicknameInput.value.trim(), age: ageInput.valueAsNumber, gender: genderInput.value };
     $('#display-nickname').textContent = `${window.dearMeProfile.nickname}님`;
     showScreen('letter-screen', '#letter-title');
 });
@@ -141,7 +150,7 @@ $('#letter-form').addEventListener('submit', async (event) => {
     event.preventDefault();
     updateLetterButton();
     if (sendButton.disabled) return;
-    if (!validProfile(window.dearMeProfile?.nickname, window.dearMeProfile?.age)) {
+    if (!validProfile(window.dearMeProfile?.nickname, window.dearMeProfile?.age, window.dearMeProfile?.gender)) {
         showScreen('setup-screen', '#setup-title');
         return;
     }
@@ -178,6 +187,7 @@ $('#letter-form').addEventListener('submit', async (event) => {
         receiveReply({
             nickname: window.dearMeProfile.nickname,
             age: window.dearMeProfile.age,
+            gender: window.dearMeProfile.gender,
             message,
             reply: data.reply,
             safetyType: data.safetyType === 'danger' ? 'danger' : 'normal',
@@ -205,15 +215,16 @@ $('#letter-form').addEventListener('submit', async (event) => {
 try {
     const saved = JSON.parse(sessionStorage.getItem(resultStorageKey));
     if (saved && saved.safetyType === 'normal' && typeof saved.reply === 'string' && saved.reply.trim()
-        && validProfile(saved.nickname, saved.age) && typeof saved.message === 'string') {
+        && validProfile(saved.nickname, saved.age, saved.gender) && typeof saved.message === 'string') {
         latestResult = saved;
         flow = 'result';
         $('#letter-reply').textContent = saved.reply;
         $('#result-recipient').textContent = `${saved.nickname}님에게 도착한 편지`;
         letter.value = saved.message;
-        window.dearMeProfile = { nickname: saved.nickname, age: saved.age };
+        window.dearMeProfile = { nickname: saved.nickname, age: saved.age, gender: saved.gender || 'undisclosed' };
         nicknameInput.value = saved.nickname;
         ageInput.value = saved.age;
+        genderInput.value = saved.gender || 'undisclosed';
         updateNextButton();
         $('#display-nickname').textContent = `${saved.nickname}님`;
         video.pause();
@@ -221,3 +232,12 @@ try {
         playAsset(characterVideo, 'character-loop.mp4');
     }
 } catch { /* Storage may be unavailable or contain an outdated record. */ }
+
+if ($('#opening-screen').classList.contains('active')) {
+    video.muted = true;
+    if (video.error || video.networkState === HTMLMediaElement.NETWORK_NO_SOURCE) showStart();
+    else video.play().catch(showStart);
+}
+window.addEventListener('load', () => {
+    if (video.error || video.networkState === HTMLMediaElement.NETWORK_NO_SOURCE) showStart();
+});

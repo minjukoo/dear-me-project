@@ -15,11 +15,12 @@
                 <source src="/opening.mp4" type="video/mp4">
             </video>
         </div>
-        <div class="opening-overlay">
-            <h1 id="opening-title" tabindex="-1">Dear, Me</h1>
-            <p>내가, 나에게 보내는 마음</p>
-            <button id="skip-opening-btn" class="btn-primary" type="button">시작하기</button>
-        </div>
+        <button id="skip-opening-btn" class="opening-skip" type="button">영상 건너뛰기</button>
+        <h1 id="opening-title" class="visually-hidden">Dear, Me 오프닝</h1>
+    </section>
+
+    <section id="start-screen" class="screen" aria-label="Dear, Me 시작 화면" hidden>
+        <button id="start-btn" class="btn-primary" type="button">시작하기</button>
     </section>
 
     <!-- 2. 별명과 나이 설정 화면 -->
@@ -35,6 +36,16 @@
                 <div class="input-group">
                     <label for="age-input">지금 나의 나이</label>
                     <input type="number" id="age-input" placeholder="예: 25" min="1" max="120" step="1" inputmode="numeric" required>
+                </div>
+                <div class="input-group">
+                    <label for="gender-input">성별</label>
+                    <select id="gender-input" required>
+                        <option value="" disabled selected>성별을 선택해 주세요</option>
+                        <option value="female">여성</option>
+                        <option value="male">남성</option>
+                        <option value="other">기타</option>
+                        <option value="undisclosed">선택하지 않음</option>
+                    </select>
                 </div>
                 <button id="next-to-letter-btn" class="btn-primary" type="submit" disabled>편지 쓰러 가기</button>
             </form>
@@ -57,7 +68,7 @@
                     <textarea id="letter-textarea" placeholder="오늘 있었던 일과 나누고 싶은 고민을 적어주세요..." minlength="50" maxlength="1000" aria-describedby="letter-help char-count" required></textarea>
                     <div class="letter-footer"><span id="char-count">0 / 1,000자</span></div>
                 </div>
-                <p class="privacy-note">답변을 위해 편지 내용과 별명·나이를 챗쿠 API로 전송합니다.</p>
+                <p class="privacy-note">답변을 위해 편지 내용과 별명·나이·성별 설정을 챗쿠 API로 전송합니다.</p>
                 <button id="send-letter-btn" class="btn-primary" type="submit" disabled>미래의 나에게 보내기</button>
                 <p id="letter-status" class="status" role="status"></p>
             </form>
