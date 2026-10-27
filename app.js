@@ -188,11 +188,18 @@ function showStart() {
     video.pause();
     showScreen('start-screen', '#start-btn');
 }
-$('#start-btn').addEventListener('click', () => {
-    // Request during the user gesture; do not wait for permission to continue.
+let openingStarted = false;
+$('#opening-trigger').addEventListener('click', () => {
+    if (openingStarted) return;
+    openingStarted = true;
+    $('#opening-trigger').hidden = true;
+    $('#skip-opening-btn').hidden = false;
+    // Both actions begin inside the same user gesture, with no intervening await.
     enterFullscreen();
-    startSetup();
+    video.muted = true;
+    video.play().catch(showStart);
 });
+$('#start-btn').addEventListener('click', startSetup);
 $('#skip-opening-btn').addEventListener('click', showStart);
 video.addEventListener('ended', showStart);
 // Missing video or autoplay restrictions must not leave a blank opening.
@@ -225,6 +232,19 @@ function updateLetterButton() {
     sendButton.disabled = sending || letter.value.trim().length < 50 || letter.value.length > 1000;
 }
 letter.addEventListener('input', updateLetterButton);
+const sendConfirmDialog = $('#send-confirm-dialog');
+function confirmLetter() {
+    if (sendConfirmDialog.open) return Promise.resolve(false);
+    return new Promise(resolve => {
+        sendConfirmDialog.returnValue = 'cancel';
+        sendConfirmDialog.addEventListener('close', () => {
+            resolve(sendConfirmDialog.returnValue === 'send');
+        }, { once: true });
+        sendConfirmDialog.showModal();
+    });
+}
+$('#cancel-send-btn').addEventListener('click', () => sendConfirmDialog.close('cancel'));
+$('#confirm-send-btn').addEventListener('click', () => sendConfirmDialog.close('send'));
 $('#letter-form').addEventListener('submit', async (event) => {
     event.preventDefault();
     updateLetterButton();
@@ -233,7 +253,7 @@ $('#letter-form').addEventListener('submit', async (event) => {
         showScreen('setup-screen', '#setup-title');
         return;
     }
-    if (!window.confirm('정말 편지를 보낼까요?')) return;
+    if (!await confirmLetter()) return;
     const message = letter.value.trim();
     sending = true;
     letter.readOnly = true;
@@ -314,8 +334,8 @@ try {
 
 if ($('#opening-screen').classList.contains('active')) {
     video.muted = true;
+    video.pause();
     if (video.error || video.networkState === HTMLMediaElement.NETWORK_NO_SOURCE) showStart();
-    else video.play().catch(showStart);
 }
 window.addEventListener('load', () => {
     if (video.error || video.networkState === HTMLMediaElement.NETWORK_NO_SOURCE) showStart();

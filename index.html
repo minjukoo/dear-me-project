@@ -16,11 +16,12 @@
     <!-- 1. 오프닝 화면 -->
     <section id="opening-screen" class="screen active" aria-labelledby="opening-title">
         <div class="video-container">
-            <video id="opening-video" autoplay muted playsinline preload="auto" aria-hidden="true">
+            <video id="opening-video" muted playsinline preload="auto" aria-hidden="true">
                 <source src="/opening.mp4" type="video/mp4">
             </video>
         </div>
-        <button id="skip-opening-btn" class="opening-skip" type="button">영상 건너뛰기</button>
+        <button id="opening-trigger" type="button"><span>화면을 클릭하거나 터치하면 시작해요</span></button>
+        <button id="skip-opening-btn" class="opening-skip" type="button" hidden>영상 건너뛰기</button>
         <h1 id="opening-title" class="visually-hidden">Dear, Me 오프닝</h1>
     </section>
 
@@ -159,5 +160,13 @@
             <button id="write-again-btn" class="btn-primary" type="button">다시 편지 쓰기</button>
         </div>
     </section>
+    <dialog id="send-confirm-dialog" aria-labelledby="send-confirm-title" aria-describedby="send-confirm-description">
+        <h2 id="send-confirm-title">정말 편지를 보낼까요?</h2>
+        <p id="send-confirm-description">작성한 편지를 시간 우체통으로 보냅니다.</p>
+        <div class="confirm-actions">
+            <button id="cancel-send-btn" class="btn-primary" type="button" autofocus>취소</button>
+            <button id="confirm-send-btn" class="btn-primary" type="button">보내기</button>
+        </div>
+    </dialog>
 </body>
 </html>
