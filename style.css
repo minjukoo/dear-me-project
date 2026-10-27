@@ -93,15 +93,15 @@ h2 { font-size: 1.5rem; margin-bottom: 10px; }
 @media (max-width: 480px) { .character-stage { min-height: 380px; aspect-ratio: 3 / 4; } .letter-subtitle { padding: 12px; } }
 @media (prefers-reduced-motion: reduce) { .character-finished { animation: none; } }
 
-/* Immersive playback uses the viewport, not the browser fullscreen permission API. */
+/* Viewport playback also works when native fullscreen is unavailable. */
 #send-screen, #player-screen, #ending-screen {
     position: fixed; inset: 0; width: 100%; height: 100%; min-height: 100svh;
     max-width: none; padding: 0; background: #161925; z-index: 50; overflow: hidden;
 }
-#send-video { position: absolute; inset: 0; width: 100%; height: 100%; max-height: none; aspect-ratio: auto; object-fit: cover; border-radius: 0; }
+#send-video { position: absolute; inset: 0; width: 100%; height: 100%; max-height: none; aspect-ratio: auto; object-fit: contain; border-radius: 0; }
 .cinema-fallback { position: absolute; bottom: max(32px, env(safe-area-inset-bottom)); left: 50%; transform: translateX(-50%); z-index: 2; }
 #player-screen .character-stage { width: 100%; height: 100%; min-height: 0; aspect-ratio: auto; border-radius: 0; }
-#player-screen #character-image { width: 100%; height: 100%; object-fit: cover; }
+#player-screen #character-image { position: static; grid-area: 1 / 1; width: 100%; height: 100%; min-height: 0; object-fit: contain; }
 #player-screen .letter-subtitle { position: absolute; bottom: max(24px, env(safe-area-inset-bottom)); left: 50%; transform: translateX(-50%); width: min(900px, calc(100% - 40px)); margin: 0; max-height: 30%; padding: 18px 24px; font-size: clamp(1rem, 2vw, 1.25rem); }
 #ending-screen { background: #202334 url('/background_room.png') center / cover no-repeat; justify-content: flex-end; padding: 32px 20px max(64px, env(safe-area-inset-bottom)); }
 .ending-menu { display: flex; flex-wrap: wrap; justify-content: center; gap: 16px; }
@@ -109,3 +109,9 @@ h2 { font-size: 1.5rem; margin-bottom: 10px; }
 #ending-status:not(:empty) { flex-basis: 100%; padding: 12px 18px; border-radius: 12px; color: #302e29; background: rgba(255,255,255,.94); text-align: center; }
 #character-select-screen { min-height: 100svh; max-width: none; justify-content: center; background: #e8e7f1 url('/background.png') center / cover no-repeat; }
 #character-select-screen > .container { max-width: 560px; }
+
+.video-container video { object-fit: contain; }
+#player-screen .character-stage { display: grid; grid-template-rows: minmax(0, 1fr) auto; background: #161925; }
+#player-screen #character-placeholder { grid-area: 1 / 1; }
+#player-screen .letter-subtitle { position: static; grid-area: 2 / 1; transform: none; justify-self: center; margin: 12px 20px max(16px, env(safe-area-inset-bottom)); max-height: 25svh; }
+.fullscreen-toggle { position: fixed; top: max(12px, env(safe-area-inset-top)); right: max(12px, env(safe-area-inset-right)); z-index: 200; padding: 8px 12px; border: 1px solid #ffffff80; border-radius: 999px; color: white; background: #161925bb; font-size: .8rem; cursor: pointer; }

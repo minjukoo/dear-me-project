@@ -8,6 +8,35 @@ const nextButton = $('#next-to-letter-btn');
 const letter = $('#letter-textarea');
 const sendButton = $('#send-letter-btn');
 const letterStatus = $('#letter-status');
+const fullscreenButton = $('#fullscreen-toggle');
+function fullscreenElement() {
+    return document.fullscreenElement || document.webkitFullscreenElement;
+}
+function updateFullscreenButton() {
+    const active = !!fullscreenElement();
+    fullscreenButton.textContent = active ? '전체화면 나가기' : '전체화면';
+    fullscreenButton.setAttribute('aria-pressed', String(active));
+    fullscreenButton.title = active ? 'ESC로도 나갈 수 있어요' : '전체화면으로 보기';
+}
+async function enterFullscreen() {
+    const root = document.documentElement;
+    const request = root.requestFullscreen || root.webkitRequestFullscreen;
+    if (!request || document.fullscreenEnabled === false) return;
+    fullscreenButton.hidden = false;
+    if (fullscreenElement()) return;
+    try { await request.call(root); }
+    catch { $('#fullscreen-status').textContent = '전체화면을 사용할 수 없어 일반 화면으로 계속합니다.'; }
+    updateFullscreenButton();
+}
+fullscreenButton.addEventListener('click', async () => {
+    if (!fullscreenElement()) { enterFullscreen(); return; }
+    const exit = document.exitFullscreen || document.webkitExitFullscreen;
+    try { if (exit) await exit.call(document); }
+    catch { $('#fullscreen-status').textContent = 'ESC를 눌러 전체화면을 나갈 수 있어요.'; }
+    updateFullscreenButton();
+});
+document.addEventListener('fullscreenchange', updateFullscreenButton);
+document.addEventListener('webkitfullscreenchange', updateFullscreenButton);
 let sending = false;
 let latestResult = null;
 const resultStorageKey = 'dearMe.letterResult';
@@ -96,6 +125,9 @@ function receiveReply(result) {
 }
 
 function showScreen(id, heading) {
+    if (id !== 'opening-screen' && id !== 'start-screen'
+        && ((document.documentElement.requestFullscreen && document.fullscreenEnabled !== false)
+            || document.documentElement.webkitRequestFullscreen)) fullscreenButton.hidden = false;
     if (!['player-screen', 'character-select-screen', 'ending-screen', 'result-screen'].includes(id)) window.DearMePlayer.stop();
     media.forEach(element => { if (!element.closest(`#${id}`)) element.pause(); });
     document.querySelectorAll('.screen').forEach((screen) => {
@@ -118,7 +150,11 @@ function showStart() {
     video.pause();
     showScreen('start-screen', '#start-btn');
 }
-$('#start-btn').addEventListener('click', startSetup);
+$('#start-btn').addEventListener('click', () => {
+    // Request during the user gesture; do not wait for permission to continue.
+    enterFullscreen();
+    startSetup();
+});
 $('#skip-opening-btn').addEventListener('click', showStart);
 video.addEventListener('ended', showStart);
 // Missing video or autoplay restrictions must not leave a blank opening.
