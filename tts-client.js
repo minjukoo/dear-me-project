@@ -2,6 +2,7 @@
 (() => {
     const cache = new Map();
     const maxAttempts = 3;
+    const preparationLimitMs = 30000;
     function failure(message, code, retryable = false, attempts = 0) {
         return Object.assign(new Error(message), { code, retryable, attempts });
     }
@@ -14,11 +15,12 @@
         if (entry.pending) return entry.pending;
         if (entry.error && (!retry || !entry.error.retryable || entry.attempts >= maxAttempts)) throw entry.error;
         entry.attempts++;
+        entry.startedAt = Date.now();
         entry.pending = (async () => {
             try {
                 const response = await fetch('/api/tts', {
                     method: 'POST', headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ text, gender }), signal: AbortSignal.timeout(65000),
+                    body: JSON.stringify({ text, gender }), signal: AbortSignal.timeout(preparationLimitMs),
                 });
                 if (!response.ok) {
                     let data;
@@ -49,5 +51,10 @@
         })();
         return entry.pending;
     }
-    window.DearMeTTS = { get, maxAttempts, script: reply => `${reply.trim()}\n그럼 안녕.` };
+    function remaining(text, gender) {
+        const entry = cache.get(JSON.stringify([gender, text]));
+        if (!entry || entry.data || !entry.startedAt) return preparationLimitMs;
+        return Math.max(0, preparationLimitMs - (Date.now() - entry.startedAt));
+    }
+    window.DearMeTTS = { get, remaining, maxAttempts, script: reply => `${reply.trim()}\n그럼 안녕.` };
 })();
