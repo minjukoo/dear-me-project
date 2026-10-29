@@ -145,8 +145,8 @@ function finishSendVideo() {
     if (flow !== 'pending' || sendFinished) return;
     sendFinished = true;
     sendVideo.pause();
-    if (latestResult) showResult();
-    else startLink();
+    // Always play the bridge, including when the reply arrived during the send video.
+    startLink();
 }
 sendVideo.addEventListener('ended', finishSendVideo);
 sendVideo.addEventListener('error', finishSendVideo);
