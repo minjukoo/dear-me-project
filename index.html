@@ -57,7 +57,7 @@
                 </div>
                 <div class="input-group">
                     <label for="age-input">지금 나의 나이</label>
-                    <input type="number" id="age-input" placeholder="예: 25" min="1" max="120" step="1" inputmode="numeric" required>
+                    <input type="number" id="age-input" placeholder="지금 나의 나이를 입력하세요" min="1" max="120" step="1" inputmode="numeric" required>
                 </div>
                 <div class="input-group">
                     <label for="gender-input">성별</label>
@@ -78,16 +78,18 @@
     <section id="letter-screen" class="screen" aria-labelledby="letter-title" hidden>
         <div class="letter-wrapper">
             <header class="letter-header">
-                <span id="display-nickname" class="recipient-badge"></span>에게 보내는 편지
+                미래의 <span id="display-nickname" class="recipient-badge"></span>에게 쓰는 편지
             </header>
             <form id="letter-form">
                 <div class="letter-paper">
                     <div class="letter-guide-text">
                         <h3 id="letter-title" tabindex="-1">오늘의 마음을 들려주세요</h3>
-                        <p id="letter-help">잠시 쉬어 가며 나에게 편지를 쓰듯 이야기해 보세요. (최소 50자 이상)</p>
+                        <p id="letter-help">잠시 쉬어 가며 나에게 편지를 쓰듯, 지금 가장 마음에 남아 있는 고민을 들려주세요. 한 번에 하나의 고민을 중심으로 작성하면 더욱 구체적인 답장을 받을 수 있어요.</p>
+                        <p id="letter-privacy-help">※ 이름, 전화번호, 주소 등 개인정보는 입력하지 마세요.</p>
+                        <p id="letter-length-help">최소 50자부터 최대 1,000자까지 작성할 수 있어요.</p>
                     </div>
-                    <label for="letter-textarea" class="visually-hidden">나의 고민 편지</label>
-                    <textarea id="letter-textarea" placeholder="오늘 있었던 일과 나누고 싶은 고민을 적어주세요..." minlength="50" maxlength="1000" aria-describedby="letter-help char-count" required></textarea>
+                    <label for="letter-textarea" class="letter-input-label">편지 내용</label>
+                    <textarea id="letter-textarea" placeholder="오늘 있었던 일과 나누고 싶은 고민을 적어주세요..." minlength="50" maxlength="1000" aria-describedby="letter-help letter-privacy-help letter-length-help char-count" required></textarea>
                     <div class="letter-footer"><span id="char-count">0 / 1,000자</span></div>
                 </div>
                 <p class="privacy-note">답변을 위해 편지 내용과 별명·나이·성별 설정을 챗쿠 API로 전송합니다.</p>
@@ -110,7 +112,7 @@
             <img class="clock-needle" src="/loading_needle.png" alt="" draggable="false">
         </div>
         <video id="link-video" playsinline preload="auto" src="/lingking.mp4" aria-label="시계로 이어지는 연결 영상"></video>
-        <p class="loading-caption" role="status">미래의 내가 답장을 쓰고 있어요. 잠시만 기다려 주세요.</p>
+        <p class="loading-caption" role="status"><img src="/assets/buttons/last/loading-message.png" alt="미래의 내가 답장을 쓰고 있어요. 잠시만 기다려 주세요." draggable="false"></p>
     </section>
 
     <section id="safety-screen" class="screen" aria-labelledby="safety-title" hidden>
@@ -161,8 +163,8 @@
         <h2 id="ending-title" class="visually-hidden" tabindex="-1">편지가 도착했어요</h2>
         <div class="ending-menu">
             <p id="ending-status" role="status"></p>
-            <button id="replay-letter-btn" class="btn-primary" type="button">다시 재생하기</button>
-            <button id="receive-letter-btn" class="btn-primary" type="button">편지 받기</button>
+            <button id="replay-letter-btn" class="btn-primary" type="button"><img src="/assets/buttons/last/replay.png" alt="" draggable="false"><span class="visually-hidden">다시 재생하기</span></button>
+            <button id="receive-letter-btn" class="btn-primary" type="button"><img src="/assets/buttons/last/receive-letter.png" alt="" draggable="false"><span class="visually-hidden">편지 받기</span></button>
         </div>
     </section>
 
