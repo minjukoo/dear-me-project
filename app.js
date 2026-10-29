@@ -205,6 +205,18 @@ function receiveReply(result) {
         flow = 'danger';
         try { sessionStorage.removeItem(resultStorageKey); } catch { /* Optional storage. */ }
         $('#safety-message').textContent = result.reply;
+        const contactNames = { '109': '자살예방상담전화 109', '112': '경찰 112', '119': '구급·구조 119' };
+        const contactLinks = $('#safety-screen .emergency-links');
+        contactLinks.replaceChildren();
+        const numbers = new Set((Array.isArray(result.emergencyContacts) ? result.emergencyContacts : [])
+            .map(contact => contact?.number).filter(number => Object.hasOwn(contactNames, number)));
+        for (const number of numbers) {
+            const link = document.createElement('a');
+            link.href = `tel:${number}`;
+            link.textContent = contactNames[number];
+            contactLinks.append(link);
+        }
+        contactLinks.hidden = numbers.size === 0;
         showScreen('safety-screen', '#safety-title');
         return;
     }
@@ -413,6 +425,7 @@ $('#letter-form').addEventListener('submit', async (event) => {
             message,
             reply: data.reply,
             safetyType: data.safetyType === 'danger' ? 'danger' : 'normal',
+            emergencyContacts: Array.isArray(data.emergencyContacts) ? data.emergencyContacts : [],
             receivedAt: new Date().toISOString(),
         });
         letterStatus.textContent = '';
