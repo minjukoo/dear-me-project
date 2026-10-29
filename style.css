@@ -262,3 +262,33 @@ body:has(#loading-screen.active.loading-exit) #fullscreen-toggle { visibility: h
 #player-screen.player-intro.player-reveal::after { opacity: 0; transition: opacity 1s linear; }
 #player-screen.player-intro .letter-subtitle { visibility: hidden; }
 body:has(#player-screen.active.player-intro) #fullscreen-toggle { visibility: hidden; }
+
+/* Plain waiting copy, narrower whole-word captions, equally tall cinema controls. */
+#loading-screen .loading-caption {
+    padding: 0 12px;
+    color: #fffaf0;
+    font-size: clamp(14px, 1.4vw, 20px);
+    line-height: 1.7;
+    text-shadow: 0 1px 5px #15182c, 0 2px 12px #15182c;
+}
+#player-screen .letter-subtitle {
+    word-break: keep-all;
+    overflow-wrap: normal;
+    hyphens: none;
+    padding-inline: calc(18px + 2.5em);
+}
+:root {
+    --dark-control-width: clamp(168px, 18vw, 240px);
+    --dark-control-height: max(44px, calc(var(--dark-control-width) * 736 / 2137));
+}
+.fullscreen-toggle.dark-art, #skip-letter-btn {
+    height: var(--dark-control-height);
+    min-height: 0;
+    aspect-ratio: auto;
+}
+.fullscreen-toggle.dark-art { width: var(--dark-control-width); }
+#skip-letter-btn { width: calc(var(--dark-control-height) * 2062 / 763); }
+@media (max-width: 480px) {
+    :root { --dark-control-width: calc(44vw - 12px); }
+    #player-screen .letter-subtitle { padding-inline: calc(10px + 2.5em); }
+}
