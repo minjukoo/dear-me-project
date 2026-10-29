@@ -156,3 +156,19 @@ h2 { font-size: 1.5rem; margin-bottom: 10px; }
 .fullscreen-toggle.glass-art { width: clamp(210px, 20vw, 280px); min-height: 44px; aspect-ratio: 2135 / 737; padding: 0; border: 0; border-radius: 0; font-size: 0; background: transparent url('/assets/buttons/glass/glass_full_button.png') center / contain no-repeat; }
 .fullscreen-toggle.glass-art[aria-pressed="true"] { background-image: url('/assets/buttons/glass/glass_fullout_button.png'); }
 #start-btn.glass-art:focus-visible, .fullscreen-toggle.glass-art:focus-visible { outline: 3px solid #6b705c; outline-offset: 3px; }
+
+/* Desk and warm gold controls belong exclusively to letter composition. */
+#letter-screen { background-image: linear-gradient(rgba(43,24,10,.08), rgba(43,24,10,.08)), url('/desk.png'); }
+.fullscreen-toggle.gold-art { width: clamp(210px, 20vw, 280px); min-height: 44px; aspect-ratio: 2135 / 736; padding: 0; border: 0; border-radius: 0; font-size: 0; background: transparent url('/assets/buttons/gold/gold_full_button.png') center / contain no-repeat; }
+.fullscreen-toggle.gold-art[aria-pressed="true"] { background-image: url('/assets/buttons/gold/gold_fullout_button.png'); }
+/* Dark controls only appear over the character scene and empty room. */
+.fullscreen-toggle.dark-art { width: clamp(168px, 18vw, 240px); min-height: 44px; aspect-ratio: 2137 / 736; padding: 0; border: 0; border-radius: 0; font-size: 0; background: transparent url('/assets/buttons/dark/dark_full_button.png') center / contain no-repeat; }
+.fullscreen-toggle.dark-art[aria-pressed="true"] { background-image: url('/assets/buttons/dark/dark_fullout_button.png'); }
+#skip-letter-btn { width: clamp(180px, 24vw, 300px); min-height: 44px; aspect-ratio: 2062 / 763; padding: 0; border: 0; border-radius: 0; font-size: 0; background: transparent url('/assets/buttons/dark/dark_skip_button.png') center / contain no-repeat; }
+#player-screen .letter-subtitle { background: transparent url('/assets/buttons/dark/dark_text.png') center / 100% 300% no-repeat; padding-inline: 18px; color: #fffaf0; text-shadow: 0 1px 3px #000; }
+.fullscreen-toggle.gold-art:focus-visible, .fullscreen-toggle.dark-art:focus-visible, #skip-letter-btn:focus-visible { outline: 3px solid #f5cf88; outline-offset: 3px; }
+@media (max-width: 480px) {
+    .fullscreen-toggle.dark-art { width: calc(44vw - 12px); }
+    #skip-letter-btn { width: calc(56vw - 24px); }
+    #player-screen .letter-subtitle { padding-inline: 10px; }
+}
