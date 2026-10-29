@@ -21,7 +21,7 @@
     let cancelAudioPreparation = null;
     let speaking = false;
     let frame = 'normal';
-    let backgroundPromise = null;
+    let stationeryPromise = null;
     let loadingTransition = null;
     function navigate(id, heading) {
         window.dispatchEvent(new CustomEvent('dearme:screen', { detail: { id, heading } }));
@@ -101,7 +101,7 @@
     function prepare(data) {
         stop();
         result = data;
-        loadBackground().catch(() => {});
+        loadStationery().catch(() => {});
         chooseCharacter(data.gender);
         if (character) play();
         else {
@@ -347,19 +347,19 @@
         link.remove();
         setTimeout(() => URL.revokeObjectURL(url), 1000);
     }
-    function loadBackground() {
-        if (!backgroundPromise) {
-            backgroundPromise = fetch('/background.png').then(response => {
-                if (!response.ok) throw new Error('background unavailable');
+    function loadStationery() {
+        if (!stationeryPromise) {
+            stationeryPromise = fetch('/letter_style.png').then(response => {
+                if (!response.ok) throw new Error('stationery unavailable');
                 return response.blob();
             }).then(blob => new Promise((resolve, reject) => {
                 const reader = new FileReader();
                 reader.onload = () => resolve(reader.result);
                 reader.onerror = reject;
                 reader.readAsDataURL(blob);
-            })).catch(error => { backgroundPromise = null; throw error; });
+            })).catch(error => { stationeryPromise = null; throw error; });
         }
-        return backgroundPromise;
+        return stationeryPromise;
     }
     async function download() {
         if (!result) return;
@@ -368,12 +368,17 @@
         button.disabled = true;
         button.textContent = '편지지 준비 중…';
         try {
-            const background = await loadBackground();
+            const stationery = await loadStationery();
             const title = `${savedResult.age}살의 ${savedResult.nickname}에게`;
-            const html = `<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escapeHTML(title)}</title><style>*{box-sizing:border-box}body{margin:0;padding:48px 20px;min-height:100vh;color:#333;background:#ecebf5 url('${background}') center/cover fixed no-repeat;font-family:system-ui,sans-serif;line-height:1.9}main{margin:auto;padding:clamp(24px,5vw,48px);max-width:740px;background:rgba(255,255,255,.94);border-radius:20px;box-shadow:0 12px 40px #28243b22}h1{font-size:24px}p{white-space:pre-wrap;overflow-wrap:anywhere}@media print{body{padding:0;background:white}main{box-shadow:none;max-width:none}}</style></head><body><main><h1>${escapeHTML(title)}</h1><p>${escapeHTML(savedResult.reply)}</p></main></body></html>`;
+            const html = `<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escapeHTML(title)}</title><style>
+*{box-sizing:border-box}body{margin:0;padding:24px 12px;color:#49372b;background:#fff;font-family:'Apple SD Gothic Neo',system-ui,sans-serif}
+main{display:flex;flex-direction:column;width:100%;max-width:820px;aspect-ratio:1107/1421;margin:auto;padding:clamp(90px,18vw,155px) clamp(34px,9vw,100px) clamp(55px,10vw,80px);background:#faf2e5 url('${stationery}') center/100% 100% no-repeat}
+h1,footer{font-family:Georgia,'Times New Roman',serif;font-weight:normal;font-style:italic}h1{font-size:clamp(25px,4vw,36px);margin:0 0 28px}p{flex:1;white-space:pre-wrap;overflow-wrap:anywhere;font-size:clamp(14px,2.2vw,18px);line-height:1.95;margin:0 0 32px}footer{text-align:right;font-size:clamp(23px,3.5vw,30px)}
+@media print{body{padding:0}main{max-width:none;print-color-adjust:exact;-webkit-print-color-adjust:exact}}
+</style></head><body><main aria-label="나에게 도착한 편지"><h1>Dear Me</h1><p>${escapeHTML(savedResult.reply)}</p><footer>From Me</footer></main></body></html>`;
             saveFile(html, 'text/html;charset=utf-8', 'dear-me-letter.html');
         } catch {
-            $('storage-status').textContent = '배경을 불러오지 못했어요. 다시 다운로드하거나 텍스트로 저장해 주세요.';
+            $('storage-status').textContent = '편지지를 불러오지 못했어요. 다시 다운로드하거나 텍스트로 저장해 주세요.';
         } finally {
             button.disabled = false;
             button.textContent = '편지지 다운받기';
