@@ -22,9 +22,10 @@ function fullscreenElement() {
 }
 function updateFullscreenButton() {
     const active = !!fullscreenElement();
-    fullscreenButton.textContent = active ? '전체화면 나가기' : '전체화면';
+    fullscreenButton.textContent = '전체화면';
+    fullscreenButton.hidden = active || !(document.documentElement.requestFullscreen || document.documentElement.webkitRequestFullscreen);
     fullscreenButton.setAttribute('aria-pressed', String(active));
-    fullscreenButton.title = active ? 'ESC로도 나갈 수 있어요' : '전체화면으로 보기';
+    fullscreenButton.title = '전체화면으로 보기';
     if (!active) {
         orientationAttempt++;
         if (orientationRequested) {
@@ -65,13 +66,7 @@ async function enterFullscreen() {
     updateFullscreenButton();
     await tryLandscapeLock();
 }
-fullscreenButton.addEventListener('click', async () => {
-    if (!fullscreenElement()) { enterFullscreen(); return; }
-    const exit = document.exitFullscreen || document.webkitExitFullscreen;
-    try { if (exit) await exit.call(document); }
-    catch { $('#fullscreen-status').textContent = 'ESC를 눌러 전체화면을 나갈 수 있어요.'; }
-    updateFullscreenButton();
-});
+fullscreenButton.addEventListener('click', () => enterFullscreen());
 document.addEventListener('fullscreenchange', updateFullscreenButton);
 document.addEventListener('webkitfullscreenchange', updateFullscreenButton);
 window.addEventListener('resize', updateOrientationHint);
@@ -209,9 +204,7 @@ function showScreen(id, heading) {
     fullscreenButton.classList.toggle('dark-art', id === 'player-screen' || id === 'ending-screen');
     fullscreenButton.classList.toggle('glass-art', ['start-screen', 'setup-screen',
         'character-select-screen', 'loading-screen', 'result-screen'].includes(id));
-    if (id !== 'opening-screen' && id !== 'start-screen'
-        && ((document.documentElement.requestFullscreen && document.fullscreenEnabled !== false)
-            || document.documentElement.webkitRequestFullscreen)) fullscreenButton.hidden = false;
+    updateFullscreenButton();
     if (!['player-screen', 'character-select-screen', 'ending-screen', 'result-screen'].includes(id)) window.DearMePlayer.stop();
     media.forEach(element => { if (!element.closest(`#${id}`)) element.pause(); });
     document.querySelectorAll('.screen').forEach((screen) => {
@@ -230,10 +223,14 @@ function startSetup() {
     video.pause();
     showScreen('setup-screen', '#setup-title');
 }
+let openingFinishing = false;
 function showStart() {
-    if (!$('#opening-screen').classList.contains('active')) return;
+    if (!$('#opening-screen').classList.contains('active') || openingFinishing) return;
+    openingFinishing = true;
     video.pause();
-    showScreen('start-screen', '#start-btn');
+    $('#skip-opening-btn').hidden = true;
+    $('#opening-screen').classList.add('opening-fading');
+    setTimeout(startSetup, window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 600);
 }
 let openingStarted = false;
 $('#opening-trigger').addEventListener('click', () => {
@@ -247,7 +244,6 @@ $('#opening-trigger').addEventListener('click', () => {
     enterFullscreen();
     openingPlayback.catch(showStart);
 });
-$('#start-btn').addEventListener('click', () => { window.DearMeSound.unlock(); startSetup(); });
 $('#skip-opening-btn').addEventListener('click', showStart);
 video.addEventListener('ended', showStart);
 // Missing video or autoplay restrictions must not leave a blank opening.
