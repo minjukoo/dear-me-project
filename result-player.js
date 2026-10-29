@@ -195,7 +195,7 @@
     }
     function loadBackground() {
         if (!backgroundPromise) {
-            backgroundPromise = fetch('/start.png').then(response => {
+            backgroundPromise = fetch('/background.png').then(response => {
                 if (!response.ok) throw new Error('background unavailable');
                 return response.blob();
             }).then(blob => new Promise((resolve, reject) => {

@@ -202,11 +202,11 @@ function receiveReply(result) {
 }
 
 function showScreen(id, heading) {
-    fullscreenButton.classList.toggle('opening-art', id === 'opening-screen');
+    fullscreenButton.classList.toggle('opening-art', id === 'opening-screen' || id === 'send-screen');
     fullscreenButton.classList.toggle('gold-art', id === 'letter-screen');
     fullscreenButton.classList.toggle('dark-art', id === 'player-screen' || id === 'ending-screen');
     fullscreenButton.classList.toggle('glass-art', ['start-screen', 'setup-screen',
-        'character-select-screen', 'result-screen'].includes(id));
+        'character-select-screen', 'loading-screen', 'result-screen'].includes(id));
     if (id !== 'opening-screen' && id !== 'start-screen'
         && ((document.documentElement.requestFullscreen && document.fullscreenEnabled !== false)
             || document.documentElement.webkitRequestFullscreen)) fullscreenButton.hidden = false;

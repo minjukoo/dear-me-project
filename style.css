@@ -73,7 +73,7 @@ h2 { font-size: 1.5rem; margin-bottom: 10px; }
 .input-group { margin-top: 18px; text-align: left; }
 .input-group label { display: block; margin-bottom: 8px; font-size: .9rem; }
 
-#result-screen { max-width: none; min-height: 100vh; min-height: 100svh; padding: clamp(20px, 5vw, 48px) 20px; background: #ecebf5 url('/start.png') center / cover no-repeat; }
+#result-screen { max-width: none; min-height: 100vh; min-height: 100svh; padding: clamp(20px, 5vw, 48px) 20px; background: #ecebf5 url('/background.png') center / cover no-repeat; }
 #result-screen > .letter-wrapper { max-width: 900px; padding: clamp(18px, 4vw, 32px); border-radius: 20px; background: rgba(255,255,255,.94); box-shadow: 0 12px 40px rgba(31,35,57,.12); }
 #reply-text-panel { scroll-margin-top: 24px; }
 #result-screen h2 { text-align: center; margin-bottom: 20px; }
