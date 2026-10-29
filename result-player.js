@@ -62,6 +62,7 @@
             $('loading-screen').classList.remove('loading-exit');
             window.DearMeSound.endLoadingExit();
         }
+        $('player-screen').classList.remove('player-intro', 'player-reveal');
         clearTimers();
         if (cancelAudioPreparation) cancelAudioPreparation();
         if (currentAudio) { currentAudio.pause(); currentAudio.removeAttribute('src'); currentAudio.load(); currentAudio = null; }
@@ -112,23 +113,20 @@
     function play(retry = false) {
         if (!result || result.safetyType !== 'normal' || !character || speaking) return;
         stop();
-        if (window.DearMeTTS) {
-            $('loading-screen').classList.add('clock-waiting');
-            $('link-video').classList.remove('link-visible');
-            navigate('loading-screen', '#loading-title');
-        }
+        $('loading-screen').classList.add('clock-waiting');
+        $('link-video').classList.remove('link-visible');
+        navigate('loading-screen', '#loading-title');
         const run = token;
         const sentences = result.reply.match(/[^.!?。！？\n]+(?:[.!?。！？]+|\n+|$)/gu)?.map(s => s.trim()).filter(Boolean) || [result.reply];
         const voice = supported && synth.getVoices().find(v => v.lang.toLowerCase().startsWith('ko'));
         speaking = true;
-        if (!window.DearMeTTS) navigate('player-screen', '#player-title');
         $('letter-subtitle').textContent = '';
         $('player-status').textContent = supported ? '편지를 읽고 있어요.' : '음성이 지원되지 않아 자막으로 편지를 전해요.';
         async function revealPlayer() {
             if (run !== token) return false;
-            if (!$('loading-screen').classList.contains('active')) return true;
-            // Reuse one transition if an audio failure arrives while fading out.
+            // Reuse the full arrival sequence, including failures during character fade-in.
             if (loadingTransition) return loadingTransition.done;
+            if (!$('loading-screen').classList.contains('active')) return true;
             const controller = new AbortController();
             loadingTransition = controller;
             const wait = ms => new Promise(resolve => {
@@ -140,14 +138,25 @@
                 controller.signal.addEventListener('abort', onAbort, { once: true });
             });
             controller.done = (async () => {
+                // Decode the still frame before fading the clock away.
+                try { await preload(assets[character].normal).image.decode(); } catch { /* Existing placeholder remains available. */ }
+                if (controller.signal.aborted || run !== token) return false;
+                setFrame('normal');
                 $('loading-screen').classList.add('loading-exit');
                 window.DearMeSound.beginLoadingExit();
                 if (!await wait(1200) || run !== token) return false;
-                if (!await wait(1000) || run !== token) return false;
+                if (!await wait(500) || run !== token) return false;
+                $('player-screen').classList.add('player-intro');
                 navigate('player-screen', '#player-title');
                 $('loading-screen').classList.remove('loading-exit');
-                loadingTransition = null;
                 window.DearMeSound.endLoadingExit();
+                // Commit the opaque cover before starting its one-second reveal.
+                getComputedStyle($('player-screen'), '::after').opacity;
+                $('player-screen').classList.add('player-reveal');
+                if (!await wait(1000) || run !== token) return false;
+                if (!await wait(500) || run !== token) return false;
+                $('player-screen').classList.remove('player-intro', 'player-reveal');
+                loadingTransition = null;
                 return true;
             })();
             return controller.done;
@@ -332,7 +341,7 @@
             } catch (error) { fail(error); }
         }
         if (window.DearMeTTS) readGateway();
-        else read(0); // Retain the existing browser-speech integration as the legacy path.
+        else revealPlayer().then(ready => { if (ready && run === token) read(0); });
     }
     function escapeHTML(value) {
         return String(value).replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));

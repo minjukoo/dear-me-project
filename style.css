@@ -247,3 +247,18 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 }
 #loading-screen.loading-exit::after { opacity: 1; }
 body:has(#loading-screen.active.loading-exit) #fullscreen-toggle { visibility: hidden; }
+
+/* Reveal a motionless normal frame before starting any speech or lip sync. */
+#player-screen::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 3;
+    background: #000;
+    opacity: 0;
+    pointer-events: none;
+}
+#player-screen.player-intro::after { opacity: 1; }
+#player-screen.player-intro.player-reveal::after { opacity: 0; transition: opacity 1s linear; }
+#player-screen.player-intro .letter-subtitle { visibility: hidden; }
+body:has(#player-screen.active.player-intro) #fullscreen-toggle { visibility: hidden; }
