@@ -243,8 +243,9 @@ $('#opening-trigger').addEventListener('click', () => {
     $('#skip-opening-btn').hidden = false;
     // Both actions begin inside the same user gesture, with no intervening await.
     window.DearMeSound.unlock();
+    const openingPlayback = window.DearMeSound.playVideo(video);
     enterFullscreen();
-    window.DearMeSound.playVideo(video).catch(showStart);
+    openingPlayback.catch(showStart);
 });
 $('#start-btn').addEventListener('click', () => { window.DearMeSound.unlock(); startSetup(); });
 $('#skip-opening-btn').addEventListener('click', showStart);
