@@ -1,6 +1,7 @@
 const { randomUUID } = require('node:crypto');
 const { normalizeAudio, readLimited } = require('../lib/tts-audio.cjs');
-const VOICES = Object.freeze({ female: 'Kore', male: 'lapetus' });
+// Iapetus starts with uppercase I, not lowercase L.
+const VOICES = Object.freeze({ female: 'Kore', male: 'Iapetus' });
 module.exports = async function handler(req, res) {
   const requestId = randomUUID();
   res.setHeader('Cache-Control', 'no-store');
@@ -25,7 +26,7 @@ module.exports = async function handler(req, res) {
     });
     if (!response.ok) {
       const retryable = response.status === 429 || response.status >= 500;
-      const error = [401, 403].includes(response.status) ? '음성 API 인증 또는 사용 권한을 확인해 주세요.' : response.status === 400 ? '음성 모델·목소리 ID와 요청 규격을 확인해 주세요.' : '음성 서비스가 일시적으로 응답하지 않습니다.';
+      const error = [401, 403].includes(response.status) ? '음성 API 인증 또는 사용 권한을 확인해 주세요.' : response.status === 400 ? `${body.gender === 'male' ? '남성' : '여성'} 음성(${VOICES[body.gender]}) 요청이 거부됐어요. 음성 ID·모델 권한·요청 규격을 확인해 주세요.` : '음성 서비스가 일시적으로 응답하지 않습니다.';
       return fail(response.status === 429 ? 429 : 502, 'TTS_UPSTREAM_ERROR', error, retryable, response.status);
     }
     const audio = normalizeAudio(await readLimited(response), response.headers.get('content-type') || '');

@@ -31,20 +31,21 @@ test('API mapping, missing key, timeout and sanitized upstream errors', async ()
     let r=res();await handler({method:'POST',body:{text:'테스트',gender:'female'}},r);
     assert.equal(r.code,503);assert.equal(r.data.code,'MISSING_TTS_KEY');assert.equal(r.data.retryable,false);
     process.env.CHATKHU_API_KEY='test-only-key';
-    for (const [gender,voice] of [['female','Kore'],['male','lapetus']]) {
+    for (const [gender,voice] of [['female','Kore'],['male','Iapetus']]) {
       global.fetch=async(url,options)=>{
         assert.equal(url,'https://factchat-cloud.mindlogic.ai/v1/gateway/audio/speech/');
         const body=JSON.parse(options.body);assert.equal(body.voice,voice);assert.equal(body.model,'gemini-2.5-flash-preview-tts');
         assert.equal(options.headers.Authorization,'Bearer test-only-key');
         return new Response(pcm(1),{headers:{'content-type':'audio/pcm'}});
       };
-      r=res();await handler({method:'POST',body:{text:'테스트',gender,voice:'untrusted-voice'}},r);
+      r=res();await handler({method:'POST',body:{text:'테스트',gender,voice:'lapetus'}},r);
       assert.equal(r.code,200);assert.equal(r.headers['X-Audio-Duration'],'1');assert.equal(r.headers['X-TTS-Voice'],voice);assert.equal(wavInfo(r.data).durationSeconds,1);
     }
     for (const body of [{text:'',gender:'male'},{text:'x'.repeat(6001),gender:'female'},{text:'hello',gender:'other'},{text:'hello',gender:'constructor'}]) {r=res();await handler({method:'POST',body},r);assert.equal(r.code,400);}
     for (const status of [400,401,403,429,500]) {
       global.fetch=async()=>new Response('private-key-and-error-detail',{status});r=res();await handler({method:'POST',body:{text:'테스트',gender:'male'}},r);
       assert.equal(r.data.upstreamStatus,status);assert.equal(r.data.retryable,status===429||status>=500);assert.ok(!JSON.stringify(r.data).includes('private-key'));
+      if (status === 400) assert.ok(r.data.error.includes('남성 음성(Iapetus)'));
     }
     global.fetch=async()=>{throw new DOMException('timeout','TimeoutError')};r=res();await handler({method:'POST',body:{text:'테스트',gender:'male'}},r);assert.equal(r.code,504);
     global.fetch=async()=>new Response('{"audio":"unknown schema"}',{headers:{'content-type':'application/json'}});r=res();await handler({method:'POST',body:{text:'테스트',gender:'male'}},r);assert.equal(r.data.code,'TTS_AUDIO_FORMAT');
