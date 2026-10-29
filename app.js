@@ -227,7 +227,7 @@ let openingFinishing = false;
 function showStart() {
     if (!$('#opening-screen').classList.contains('active') || openingFinishing) return;
     openingFinishing = true;
-    video.pause();
+    window.DearMeSound.fadeVideoOut(video);
     $('#skip-opening-btn').hidden = true;
     $('#opening-screen').classList.add('opening-fading');
     setTimeout(startSetup, window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 600);
@@ -245,6 +245,12 @@ $('#opening-trigger').addEventListener('click', () => {
     openingPlayback.catch(showStart);
 });
 $('#skip-opening-btn').addEventListener('click', showStart);
+// Lower the original soundtrack before the last frame, rather than cutting it at ended.
+video.addEventListener('timeupdate', () => {
+    if (!openingFinishing && Number.isFinite(video.duration) && video.duration > 0) {
+        video.volume = Math.min(1, Math.max(0, (video.duration - video.currentTime) / 1.2));
+    }
+});
 video.addEventListener('ended', showStart);
 // Missing video or autoplay restrictions must not leave a blank opening.
 function hideUnavailableVideo() { showStart(); }

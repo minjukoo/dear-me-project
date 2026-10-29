@@ -2,7 +2,7 @@
 (() => {
     const tracks = {
         website: { url: '/website_bgm.mp3', volume: .45 },
-        letter: { url: '/letter_bgm.mp3', volume: .42 },
+        letter: { url: '/letter_bgm.mp3', volume: .12 },
     };
     const bgm = new Audio(tracks.website.url);
     bgm.preload = 'auto';
@@ -13,17 +13,41 @@
     let revision = 0;
     let leaving = false;
     let lastError = null;
+    let fadeFrame = null;
+    function fadeIn(target) {
+        cancelAnimationFrame(fadeFrame);
+        const initial = bgm.volume;
+        const started = performance.now();
+        function step(now) {
+            const progress = Math.min(1, (now - started) / 900);
+            bgm.volume = initial + (target - initial) * progress;
+            fadeFrame = progress < 1 ? requestAnimationFrame(step) : null;
+        }
+        fadeFrame = requestAnimationFrame(step);
+    }
+    function fadeVideoOut(element, duration = 600) {
+        const initial = element.volume;
+        const started = performance.now();
+        function step(now) {
+            const progress = Math.min(1, (now - started) / duration);
+            element.volume = initial * (1 - progress);
+            if (progress < 1) requestAnimationFrame(step);
+        }
+        requestAnimationFrame(step);
+    }
     function desiredTrack() {
         if (!unlocked || document.hidden || leaving) return null;
         const id = document.querySelector('.screen.active')?.id;
-        if (id === 'letter-screen') return 'letter';
+        if (id === 'player-screen') return 'letter';
         if (id === 'loading-screen') {
             const link = document.getElementById('link-video');
             return link && !link.paused && !link.ended ? null : 'website';
         }
-        return ['start-screen', 'setup-screen', 'character-select-screen', 'ending-screen', 'result-screen'].includes(id) ? 'website' : null;
+        return ['start-screen', 'setup-screen', 'letter-screen', 'character-select-screen', 'ending-screen', 'result-screen'].includes(id) ? 'website' : null;
     }
     function stopCurrent() {
+        cancelAnimationFrame(fadeFrame);
+        fadeFrame = null;
         bgm.pause();
         bgm.volume = 0;
         pendingName = null;
@@ -36,7 +60,8 @@
         const wanted = desiredTrack();
         if (wanted && wanted === currentName && (!bgm.paused || pendingName === wanted)) {
             bgm.muted = false;
-            bgm.volume = tracks[wanted].volume;
+            // Keep both the playhead and an in-progress fade across screen changes.
+            if (fadeFrame === null && bgm.volume !== tracks[wanted].volume) fadeIn(tracks[wanted].volume);
             return;
         }
         const run = ++revision;
@@ -48,7 +73,7 @@
             bgm.load();
         }
         bgm.muted = false;
-        bgm.volume = tracks[wanted].volume;
+        bgm.volume = 0;
         bgm.loop = true;
         pendingName = wanted;
         try {
@@ -56,7 +81,7 @@
             if (run !== revision || wanted !== desiredTrack()) return;
             pendingName = null;
             lastError = null;
-            bgm.volume = tracks[wanted].volume;
+            fadeIn(tracks[wanted].volume);
         } catch (error) {
             if (run !== revision) return;
             pendingName = null;
@@ -112,7 +137,7 @@
     });
     window.addEventListener('pageshow', () => { leaving = false; sync(); });
     window.DearMeSound = {
-        unlock, playVideo, sync,
+        unlock, playVideo, sync, fadeVideoOut,
         getState: () => ({ unlocked, track: !bgm.paused ? currentName : null, paused: bgm.paused, muted: bgm.muted, volume: bgm.volume, readyState: bgm.readyState, source: bgm.currentSrc, lastError }),
     };
 })();
