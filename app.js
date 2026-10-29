@@ -311,6 +311,14 @@ function updateLetterButton() {
     sendButton.disabled = sending || letter.value.trim().length < 50 || letter.value.length > 1000;
 }
 letter.addEventListener('input', updateLetterButton);
+const prohibitedDialog = $('#prohibited-dialog');
+function showProhibitedTerms(terms) {
+    const safeTerms = [...new Set(terms)].filter(term => window.DearMeModeration.terms.includes(term));
+    $('#prohibited-terms').textContent = `금지어: ${safeTerms.join(', ')}`;
+    if (!prohibitedDialog.open) prohibitedDialog.showModal();
+}
+$('#prohibited-ok-btn').addEventListener('click', () => prohibitedDialog.close());
+prohibitedDialog.addEventListener('close', () => letter.focus({ preventScroll: true }));
 const sendConfirmDialog = $('#send-confirm-dialog');
 function confirmLetter() {
     if (sendConfirmDialog.open) return Promise.resolve(false);
@@ -330,6 +338,12 @@ $('#letter-form').addEventListener('submit', async (event) => {
     if (sendButton.disabled) return;
     if (!validProfile(window.dearMeProfile?.nickname, window.dearMeProfile?.age, window.dearMeProfile?.gender)) {
         showScreen('setup-screen', '#setup-title');
+        return;
+    }
+    const prohibitedTerms = window.DearMeModeration.findProhibitedTerms(letter.value);
+    if (prohibitedTerms.length && !window.DearMeModeration.requiresSafetyResponse(letter.value)) {
+        window.DearMeDiagnostics?.report('chat.input_blocked', { code: 'PROHIBITED_LANGUAGE', prohibitedTerms });
+        showProhibitedTerms(prohibitedTerms);
         return;
     }
     if (!await confirmLetter()) return;
@@ -378,6 +392,13 @@ $('#letter-form').addEventListener('submit', async (event) => {
         const text = await response.text();
         try { data = JSON.parse(text); }
         catch { throw new Error(`API가 JSON 대신 다른 응답을 반환했습니다 (HTTP ${response.status}). 서버리스 함수 배포와 라우팅을 확인해 주세요.`); }
+        if (!response.ok && data?.code === 'PROHIBITED_LANGUAGE') {
+            flow = 'idle';
+            showScreen('letter-screen', '#letter-title');
+            letterStatus.textContent = '';
+            showProhibitedTerms(Array.isArray(data.prohibitedTerms) ? data.prohibitedTerms : []);
+            return;
+        }
         if (!response.ok) {
             chatDiagnostic.code = data?.code || 'CHAT_UNKNOWN_ERROR';
             chatDiagnostic.upstreamStatus = data?.upstreamStatus;

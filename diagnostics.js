@@ -5,7 +5,10 @@
     function report(event, details = {}) {
         const record = { event };
         for (const key of fields) if (key !== 'event' && ['string', 'number'].includes(typeof details[key])) record[key] = details[key];
-        const level = /error$/.test(event) ? 'error' : event === 'tts.fallback' ? 'warn' : 'info';
+        if (event === 'chat.input_blocked' && Array.isArray(details.prohibitedTerms)) {
+            record.prohibitedTerms = [...new Set(details.prohibitedTerms)].filter(term => window.DearMeModeration?.terms.includes(term));
+        }
+        const level = /error$/.test(event) ? 'error' : ['tts.fallback', 'chat.input_blocked'].includes(event) ? 'warn' : 'info';
         console[level]('dearme.diagnostics', record);
         if (sent >= 40) return;
         sent++;

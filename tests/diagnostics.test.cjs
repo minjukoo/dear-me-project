@@ -19,6 +19,11 @@ test('Browser log ingestion allows diagnostic metadata and drops private/raw fie
     assert.equal(logs[0].elapsedMs,60000);
     assert.equal(logs[0].source,'browser');
     assert.equal(JSON.stringify(logs).includes('PRIVATE'),false);
+    const blocked=response();
+    await handler({method:'POST',headers:{},body:{event:'chat.input_blocked',code:'PROHIBITED_LANGUAGE',prohibitedTerms:['씨발','PRIVATE_UNREGISTERED_TERM']}},blocked);
+    assert.equal(blocked.code,204);
+    assert.deepEqual(logs[1].prohibitedTerms,['씨발']);
+    assert.equal(JSON.stringify(logs).includes('PRIVATE'),false);
   } finally { console.warn=original; }
 });
 test('Reject invalid events, malformed JSON, oversized bodies and cross-site origins', async () => {

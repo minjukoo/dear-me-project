@@ -130,9 +130,9 @@ h2 { font-size: 1.5rem; margin-bottom: 10px; }
 #opening-screen { transition: opacity .6s ease; }
 #opening-screen.opening-fading { opacity: 0; pointer-events: none; }
 @media (prefers-reduced-motion: reduce) { #opening-screen { transition: none; } }
-#send-confirm-dialog { position: fixed; inset: 0; margin: auto; width: min(420px, calc(100% - 40px)); max-height: calc(100% - 40px); padding: 28px; border: 1px solid var(--border-color); border-radius: 20px; color: var(--text-color); background: var(--paper-color); box-shadow: 0 16px 60px #0004; }
-#send-confirm-dialog::backdrop { background: rgba(14,17,26,.6); }
-#send-confirm-dialog p { line-height: 1.7; }
+#send-confirm-dialog, #prohibited-dialog { position: fixed; inset: 0; margin: auto; width: min(420px, calc(100% - 40px)); max-height: calc(100% - 40px); padding: 28px; border: 1px solid var(--border-color); border-radius: 20px; color: var(--text-color); background: var(--paper-color); box-shadow: 0 16px 60px #0004; }
+#send-confirm-dialog::backdrop, #prohibited-dialog::backdrop { background: rgba(14,17,26,.6); }
+#send-confirm-dialog p, #prohibited-dialog p { line-height: 1.7; }
 .confirm-actions { display: flex; gap: 12px; justify-content: flex-end; }
 #cancel-send-btn { background: #e6eaf3; color: var(--text-color); }
 
@@ -298,3 +298,5 @@ body:has(#player-screen.active.player-intro) #fullscreen-toggle { visibility: hi
     /* The supplied PNGs have different transparent top margins (9/763 vs 31/736). */
     background-position: center calc(50% + var(--dark-control-height) * .030324);
 }
+
+#prohibited-terms { margin-top: 12px; font-weight: 600; overflow-wrap: anywhere; }

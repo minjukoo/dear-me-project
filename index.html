@@ -20,13 +20,14 @@
     <meta name="twitter:description" content="지금의 고민을 미래의 나에게 보내고, 나에게 도착한 편지를 만나보세요.">
     <meta name="twitter:image" content="https://dear-me-project.vercel.app/start.png">
     <link rel="icon" type="image/png" href="/favicon.png">
-    <link rel="stylesheet" href="style.css?v=5">
-    <script src="diagnostics.js" defer></script>
+    <link rel="stylesheet" href="style.css?v=6">
+    <script src="diagnostics.js?v=2" defer></script>
     <script src="media-layout.js" defer></script>
     <script src="sound-manager.js?v=10" defer></script>
     <script src="tts-client.js?v=2" defer></script>
     <script src="result-player.js?v=3" defer></script>
-    <script src="app.js?v=2" defer></script>
+    <script src="moderation-rules.js" defer></script>
+    <script src="app.js?v=3" defer></script>
 </head>
 <body>
     <button id="fullscreen-toggle" class="fullscreen-toggle opening-art" type="button" aria-pressed="false" hidden>전체화면</button>
@@ -186,6 +187,12 @@
             <button id="write-again-btn" class="btn-primary" type="button">다시 편지 쓰기</button>
         </div>
     </section>
+    <dialog id="prohibited-dialog" role="alertdialog" aria-labelledby="prohibited-title" aria-describedby="prohibited-description prohibited-terms">
+        <h2 id="prohibited-title">금지어를 수정해 주세요</h2>
+        <p id="prohibited-description">금지어가 포함되어 있어 편지를 보낼 수 없어요. 해당 표현을 수정한 뒤 다시 보내 주세요.</p>
+        <p id="prohibited-terms"></p>
+        <div class="confirm-actions"><button id="prohibited-ok-btn" class="btn-primary" type="button" autofocus>확인</button></div>
+    </dialog>
     <dialog id="send-confirm-dialog" aria-labelledby="send-confirm-title" aria-describedby="send-confirm-description">
         <h2 id="send-confirm-title">정말 편지를 보낼까요?</h2>
         <p id="send-confirm-description">작성한 편지를 시간 우체통으로 보냅니다.</p>

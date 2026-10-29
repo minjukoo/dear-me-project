@@ -1,5 +1,5 @@
 // Conservative local screening is a first layer, not a complete risk classifier.
-const dangerPattern = /자[\s\p{P}\p{S}_]*살|자[\s\p{P}\p{S}_]*해|살[\s\p{P}\p{S}_]*해|폭[\s\p{P}\p{S}_]*력|마[\s\p{P}\p{S}_]*약|죽고\s*싶|죽어\s*버|죽이|죽일|목숨|극단적\s*선택|손목.{0,12}(긋|베)|뛰어내|해치|해칠|칼로.{0,12}(찌르|찔)|suicid|self[ -]?harm|kill\s+(myself|someone|him|her)|murder|cocaine|methamphetamine/iu;
+const { findProhibitedTerms, requiresSafetyResponse } = require('../moderation-rules.js');
 const safetyReply = '피해를 주거나 위험한 행동을 돕는 답변은 제공할 수 없어요. 지금은 당신과 주변 사람의 안전이 가장 중요합니다. 위험한 물건이나 장소에서 거리를 두고, 믿을 수 있는 사람에게 함께 있어 달라고 요청해 주세요. 즉각적인 위험이나 부상이 있다면 112 또는 119, 자살·자해 위기 상담이 필요하다면 자살예방상담전화 109(24시간)에 연락해 주세요. 한국 외 지역에서는 현지 긴급전화나 위기상담기관을 이용해 주세요.';
 const emergencyContacts = [{ name: '자살예방상담전화 (24시간)', number: '109' }, { name: '경찰 긴급신고', number: '112' }, { name: '구급·구조', number: '119' }];
 const systemPrompt = `너는 Dear, Me의 편지 속 화자, 지금의 나에게 편지를 보내는 '미래의 나'다. 일반 답장은 친근하고 담백한 한국어 편지로 쓴다.
@@ -51,7 +51,10 @@ module.exports = async function handler(req, res) {
     return fail(400, 'INVALID_MESSAGE', '1~2000자의 메시지를 보내 주세요.');
   }
 
-  if (dangerPattern.test(message.normalize('NFKC'))) return dangerResponse(res, requestId, start);
+  if (requiresSafetyResponse(message)) return dangerResponse(res, requestId, start);
+
+  const prohibitedTerms = findProhibitedTerms(message);
+  if (prohibitedTerms.length) return fail(400, 'PROHIBITED_LANGUAGE', '금지어가 포함되어 있어 편지를 보낼 수 없어요. 해당 표현을 수정해 주세요.', { prohibitedTerms });
 
   const nickname = typeof body.nickname === 'string' ? body.nickname.trim() : '';
   const age = body.age;
