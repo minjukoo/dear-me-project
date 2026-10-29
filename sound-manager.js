@@ -3,6 +3,7 @@
     const tracks = {
         website: { url: '/website_bgm.mp3', volume: .45 },
         letter: { url: '/letter_bgm.mp3', volume: .12 },
+        loading: { url: '/loading_bgm.mp3', volume: .45 },
     };
     const players = Object.fromEntries(Object.entries(tracks).map(([name, track]) => {
         const audio = new Audio(track.url);
@@ -48,21 +49,12 @@
         }
         requestAnimationFrame(step);
     }
-    function fadeDuration() {
-        const link = document.getElementById('link-video');
-        return document.querySelector('.screen.active')?.id === 'loading-screen'
-            && link && !link.paused && !link.ended ? 1000 : 2600;
-    }
+    function fadeDuration() { return desiredTrack() === 'loading' ? 400 : 2600; }
     function desiredTrack() {
         if (!unlocked || document.hidden || leaving) return null;
         const id = document.querySelector('.screen.active')?.id;
         if (id === 'player-screen') return 'letter';
-        if (id === 'loading-screen') {
-            const link = document.getElementById('link-video');
-            const bridging = link && !link.paused && !link.ended;
-            const nearEnd = link && Number.isFinite(link.duration) && link.duration - link.currentTime <= 1;
-            return bridging && !nearEnd ? null : 'website';
-        }
+        if (id === 'loading-screen') return 'loading';
         return ['start-screen', 'setup-screen', 'letter-screen', 'character-select-screen', 'ending-screen', 'result-screen'].includes(id) ? 'website' : null;
     }
     function stopCurrent() {
@@ -136,9 +128,11 @@
         });
         revision++;
         stopCurrent();
-        element.muted = false;
-        element.defaultMuted = false;
-        element.volume = 1;
+        const isBridge = element.id === 'link-video';
+        if (isBridge) players.loading.currentTime = 0;
+        element.muted = isBridge;
+        element.defaultMuted = isBridge;
+        element.volume = isBridge ? 0 : 1;
         try { await element.play(); }
         catch (error) {
             if (error.name !== 'NotAllowedError') throw error;
@@ -148,15 +142,6 @@
             await element.play();
         }
     }
-    // Only the bridge tail overlaps waiting music; send and bridge remain exclusive.
-    document.addEventListener('timeupdate', event => {
-        const element = event.target;
-        if (!(element instanceof HTMLVideoElement) || !['send-video', 'link-video'].includes(element.id)) return;
-        if (element.id === 'link-video' && Number.isFinite(element.duration) && element.duration > 0) {
-            element.volume = Math.max(0, Math.min(1, (element.duration - element.currentTime) / 1));
-        }
-        if (element.id === 'link-video' && element.closest('.screen.active')) sync();
-    }, true);
     for (const name of ['playing', 'pause', 'ended', 'error']) {
         document.addEventListener(name, event => {
             if (event.target instanceof HTMLVideoElement) sync();
@@ -167,7 +152,7 @@
         if (!unlocked) return;
         if (desiredTrack() && bgm.paused && !pendingName && !bgm.error) sync();
         document.querySelectorAll('.screen.active video').forEach(video => {
-            if (!video.paused && !video.ended && video.muted) { video.muted = false; }
+            if (video.id !== 'link-video' && !video.paused && !video.ended && video.muted) { video.muted = false; }
         });
     }
     document.addEventListener('pointerdown', recover, true);
@@ -182,6 +167,6 @@
     window.addEventListener('pageshow', () => { leaving = false; sync(); });
     window.DearMeSound = {
         unlock, playVideo, sync, fadeVideoOut,
-        getState: () => ({ unlocked, track: !bgm.paused ? currentName : null, paused: bgm.paused, muted: bgm.muted, volume: bgm.volume, readyState: bgm.readyState, source: bgm.currentSrc, layers: Object.entries(players).filter(([, audio]) => !audio.paused && audio.volume > 0).map(([name]) => name), lastError }),
+        getState: () => ({ unlocked, track: !bgm.paused ? currentName : null, paused: bgm.paused, muted: bgm.muted, volume: bgm.volume, readyState: bgm.readyState, position: bgm.currentTime, source: bgm.currentSrc, layers: Object.entries(players).filter(([, audio]) => !audio.paused && audio.volume > 0).map(([name]) => name), lastError }),
     };
 })();
