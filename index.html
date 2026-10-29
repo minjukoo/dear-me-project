@@ -7,6 +7,7 @@
     <link rel="icon" type="image/png" href="/favicon.png">
     <link rel="stylesheet" href="style.css">
     <script src="media-layout.js" defer></script>
+    <script src="sound-manager.js" defer></script>
     <script src="tts-client.js" defer></script>
     <script src="result-player.js" defer></script>
     <script src="app.js" defer></script>
@@ -18,7 +19,7 @@
     <!-- 1. 오프닝 화면 -->
     <section id="opening-screen" class="screen active" aria-labelledby="opening-title">
         <div class="video-container">
-            <video id="opening-video" muted playsinline preload="auto" aria-hidden="true">
+            <video id="opening-video" playsinline preload="auto" aria-hidden="true">
                 <source src="/opening.mp4" type="video/mp4">
             </video>
         </div>
@@ -85,7 +86,7 @@
 
     <section id="send-screen" class="screen cinema-screen" aria-labelledby="send-title" hidden>
         <h2 id="send-title" class="visually-hidden" tabindex="-1">시간 우체통으로 보내는 중</h2>
-        <video id="send-video" autoplay muted playsinline preload="none" aria-label="편지 전송 영상"></video>
+        <video id="send-video" autoplay playsinline preload="none" aria-label="편지 전송 영상"></video>
         <button id="resume-send-btn" class="cinema-fallback btn-primary" type="button" hidden>영상 재생 계속하기</button>
     </section>
 
@@ -95,7 +96,7 @@
             <img id="loading-background" class="clock-background" src="/loading_bg.png" alt="" draggable="false">
             <img class="clock-needle" src="/loading_needle.png" alt="" draggable="false">
         </div>
-        <video id="link-video" muted playsinline preload="auto" src="/lingking.mp4" aria-label="시계로 이어지는 연결 영상"></video>
+        <video id="link-video" playsinline preload="auto" src="/lingking.mp4" aria-label="시계로 이어지는 연결 영상"></video>
         <p class="loading-caption" role="status">미래의 내가 답장을 쓰고 있어요. 잠시만 기다려 주세요.</p>
     </section>
 

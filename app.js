@@ -128,15 +128,14 @@ linkVideo.addEventListener('error', finishLink);
 function startLink() {
     linkStarted = true;
     if (linkVideo.error) { finishLink(); return; }
-    linkVideo.play().catch(finishLink);
+    window.DearMeSound.playVideo(linkVideo).catch(finishLink);
 }
 function playAsset(element, filename) {
     element.hidden = false;
     if (element === sendVideo) $('#resume-send-btn').hidden = true;
-    element.muted = true;
     element.src = `/${filename}`;
     element.load();
-    element.play().catch(() => {
+    window.DearMeSound.playVideo(element).catch(() => {
         if (element.error) element.dispatchEvent(new Event('error'));
         else if (element === sendVideo) $('#resume-send-btn').hidden = false;
     });
@@ -157,7 +156,7 @@ function finishSendVideo() {
 sendVideo.addEventListener('ended', finishSendVideo);
 sendVideo.addEventListener('error', finishSendVideo);
 $('#resume-send-btn').addEventListener('click', () => {
-    sendVideo.play().then(() => { $('#resume-send-btn').hidden = true; }).catch(() => {});
+    window.DearMeSound.playVideo(sendVideo).then(() => { $('#resume-send-btn').hidden = true; }).catch(() => {});
 });
 $('#finish-letter-btn').addEventListener('click', () => {
     if (flow !== 'result') return;
@@ -220,6 +219,7 @@ function showScreen(id, heading) {
         screen.hidden = !active;
         screen.classList.toggle('active', active);
     });
+    window.DearMeSound.sync();
     $(heading).focus({ preventScroll: true });
     window.scrollTo({ top: 0, behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth' });
 }
@@ -242,11 +242,11 @@ $('#opening-trigger').addEventListener('click', () => {
     $('#opening-trigger').hidden = true;
     $('#skip-opening-btn').hidden = false;
     // Both actions begin inside the same user gesture, with no intervening await.
+    window.DearMeSound.unlock();
     enterFullscreen();
-    video.muted = true;
-    video.play().catch(showStart);
+    window.DearMeSound.playVideo(video).catch(showStart);
 });
-$('#start-btn').addEventListener('click', startSetup);
+$('#start-btn').addEventListener('click', () => { window.DearMeSound.unlock(); startSetup(); });
 $('#skip-opening-btn').addEventListener('click', showStart);
 video.addEventListener('ended', showStart);
 // Missing video or autoplay restrictions must not leave a blank opening.
