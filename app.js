@@ -361,6 +361,8 @@ $('#letter-form').addEventListener('submit', async (event) => {
     showScreen('send-screen', '#send-title');
     // Start playback without awaiting it; the API request runs in parallel.
     playAsset(sendVideo, 'letter-send.mp4');
+    const chatStartedAt = Date.now();
+    const chatDiagnostic = { stage: 'request' };
     try {
         const response = await fetch('/api/chatkhu', {
             method: 'POST',
@@ -368,11 +370,17 @@ $('#letter-form').addEventListener('submit', async (event) => {
             body: JSON.stringify({ message, ...window.dearMeProfile }),
             signal: AbortSignal.timeout(65000),
         });
+        chatDiagnostic.requestId = response.headers.get('x-request-id') || undefined;
+        chatDiagnostic.httpStatus = response.status;
+        chatDiagnostic.stage = 'body';
+        chatDiagnostic.code = 'CHAT_INVALID_RESPONSE';
         let data;
         const text = await response.text();
         try { data = JSON.parse(text); }
         catch { throw new Error(`API가 JSON 대신 다른 응답을 반환했습니다 (HTTP ${response.status}). 서버리스 함수 배포와 라우팅을 확인해 주세요.`); }
         if (!response.ok) {
+            chatDiagnostic.code = data?.code || 'CHAT_UNKNOWN_ERROR';
+            chatDiagnostic.upstreamStatus = data?.upstreamStatus;
             throw new Error(`${data?.error || '답변을 받지 못했습니다.'} (HTTP ${response.status}${data?.code ? `, ${data.code}` : ''}${data?.requestId ? `, 요청 ${data.requestId}` : ''})`);
         }
         if (typeof data?.reply !== 'string' || !data.reply.trim()) throw new Error('답장 형식이 올바르지 않습니다.');
@@ -388,6 +396,7 @@ $('#letter-form').addEventListener('submit', async (event) => {
         });
         letterStatus.textContent = '';
     } catch (error) {
+        window.DearMeDiagnostics?.report('chat.client_error', { ...chatDiagnostic, elapsedMs: Date.now() - chatStartedAt, code: error.name === 'TimeoutError' ? 'CHAT_CLIENT_TIMEOUT' : error instanceof TypeError ? 'CHAT_NETWORK_ERROR' : chatDiagnostic.code || 'CHAT_UNKNOWN_ERROR' });
         flow = 'error';
         showScreen('letter-screen', '#letter-title');
         letterStatus.textContent = error.name === 'TimeoutError'

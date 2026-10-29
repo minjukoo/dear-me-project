@@ -189,14 +189,16 @@
                 if (run !== token || currentUtterance !== utterance) return;
                 finish('', 2800, 'hello');
             };
-            utterance.onerror = () => {
+            utterance.onerror = (event) => {
                 if (run !== token || currentUtterance !== utterance) return;
+                window.DearMeDiagnostics?.report('tts.browser_error', { code: 'BROWSER_SPEECH_ERROR', gender: character, browserCode: event?.error });
                 stop();
                 $('letter-subtitle').textContent = '그럼 안녕.';
                 finish('', 2800, 'hello');
             };
             startupTimer = setTimeout(() => {
                 if (run !== token || currentUtterance !== utterance) return;
+                window.DearMeDiagnostics?.report('tts.browser_error', { code: 'BROWSER_SPEECH_START_TIMEOUT', gender: character });
                 stop();
                 $('letter-subtitle').textContent = '그럼 안녕.';
                 finish('', 2800, 'hello');
@@ -229,13 +231,15 @@
                 setFrame('normal');
                 read(index + 1);
             };
-            utterance.onerror = () => {
+            utterance.onerror = (event) => {
                 if (run !== token || currentUtterance !== utterance) return;
+                window.DearMeDiagnostics?.report('tts.browser_error', { code: 'BROWSER_SPEECH_ERROR', gender: character, browserCode: event?.error });
                 stop();
                 finish('자동 음성을 재생하지 못했어요. 다시 재생하거나 편지 받기로 전문을 읽어 주세요.');
             };
             startupTimer = setTimeout(() => {
                 if (run !== token) return;
+                window.DearMeDiagnostics?.report('tts.browser_error', { code: 'BROWSER_SPEECH_START_TIMEOUT', gender: character });
                 stop();
                 finish('음성을 시작하지 못했어요. 다시 재생하거나 편지 받기로 전문을 읽어 주세요.');
             }, 12000);
@@ -244,9 +248,16 @@
         }
         async function readGateway() {
             let gatewayAbandoned = false;
-            const fail = async () => {
+            let stage = 'request';
+            let playbackRequestId;
+            const diagnostic = (event, details = {}) => window.DearMeDiagnostics?.report(event, {
+                ...window.DearMeTTS.info?.(window.DearMeTTS.script(result.reply), character),
+                gender: character, stage, ...(playbackRequestId ? { requestId: playbackRequestId } : {}), ...details,
+            });
+            const fail = async (error) => {
                 if (run !== token || gatewayAbandoned) return;
                 gatewayAbandoned = true;
+                diagnostic('tts.fallback', { code: typeof error?.code === 'string' ? error.code : error?.name === 'NotAllowedError' ? 'TTS_AUTOPLAY_BLOCKED' : stage === 'playback' ? 'TTS_PLAYBACK_ERROR' : 'TTS_UNKNOWN_ERROR', ...(error?.stage ? { stage: error.stage } : {}), fallback: supported ? 'browser' : 'captions', mediaCode: currentAudio?.error?.code });
                 clearTimers();
                 if (cancelAudioPreparation) cancelAudioPreparation();
                 if (currentAudio) {
@@ -266,10 +277,12 @@
                 read(0);
             };
             const script = window.DearMeTTS.script(result.reply);
-            gatewayDeadlineTimer = setTimeout(fail, window.DearMeTTS.remaining(script, character));
+            gatewayDeadlineTimer = setTimeout(() => fail({ code: 'TTS_PREPARATION_TIMEOUT' }), window.DearMeTTS.remaining(script, character));
             try {
                 const asset = await window.DearMeTTS.get(window.DearMeTTS.script(result.reply), character, { retry: retry === true });
                 if (run !== token || gatewayAbandoned) return;
+                stage = 'media_load';
+                playbackRequestId = asset.requestId;
                 const audio = new Audio(asset.url);
                 currentAudio = audio;
                 const cues = [...sentences, '그럼 안녕.'];
@@ -289,9 +302,11 @@
                 audio.onplaying = () => {
                     if (run !== token || gatewayAbandoned || currentAudio !== audio) return;
                     clearTimers();
+                    stage = 'playback';
+                    diagnostic('tts.playback_started', { durationSeconds: asset.durationSeconds, voice: asset.voice });
                     updateCue();
                     if (lastCue < cues.length - 1) animateMouth();
-                    nextTimer = setTimeout(() => fail(Object.assign(new Error('음성 재생이 중단됐어요. 다시 재생하거나 편지를 받아 주세요.'), { retryable: true })), (asset.durationSeconds + 15) * 1000);
+                    nextTimer = setTimeout(() => fail(Object.assign(new Error('음성 재생이 중단됐어요. 다시 재생하거나 편지를 받아 주세요.'), { retryable: true, code: 'TTS_PLAYBACK_STALLED' })), (asset.durationSeconds + 15) * 1000);
                 };
                 audio.onpause = audio.onwaiting = () => {
                     if (run !== token || gatewayAbandoned || currentAudio !== audio) return;
@@ -318,25 +333,27 @@
                         if (error) reject(error); else resolve();
                     };
                     const ready = () => settle();
-                    const failed = () => settle(Object.assign(new Error('음성 파일을 불러오지 못했어요. 다시 시도해 주세요.'), { retryable: true }));
+                    const failed = () => settle(Object.assign(new Error('음성 파일을 불러오지 못했어요. 다시 시도해 주세요.'), { retryable: true, code: 'TTS_MEDIA_LOAD_ERROR' }));
                     cancelAudioPreparation = () => settle(new DOMException('Cancelled', 'AbortError'));
                     audio.addEventListener('canplay', ready);
                     audio.addEventListener('error', failed);
-                    startupTimer = setTimeout(() => settle(Object.assign(new Error('음성 파일 준비 시간이 초과됐어요.'), { retryable: true })), 15000);
+                    startupTimer = setTimeout(() => settle(Object.assign(new Error('음성 파일 준비 시간이 초과됐어요.'), { retryable: true, code: 'TTS_MEDIA_LOAD_TIMEOUT' })), 15000);
                     audio.preload = 'auto';
                     audio.load();
                     if (audio.readyState >= 3) ready();
                 });
                 if (run !== token || gatewayAbandoned || currentAudio !== audio) return;
                 if (!Number.isFinite(audio.duration) || Math.abs(audio.duration - asset.durationSeconds) > .2) {
-                    throw Object.assign(new Error('음성 파일의 실제 길이가 응답과 달라요. 응답 규격을 확인해 주세요.'), { retryable: false });
+                    throw Object.assign(new Error('음성 파일의 실제 길이가 응답과 달라요. 응답 규격을 확인해 주세요.'), { retryable: false, code: 'TTS_DURATION_MISMATCH' });
                 }
                 clearTimeout(gatewayDeadlineTimer);
                 gatewayDeadlineTimer = null;
                 $('player-screen').append($('tts-error-panel'));
+                stage = 'transition';
                 if (!await revealPlayer() || run !== token || gatewayAbandoned) return;
-                audio.onerror = () => fail(Object.assign(new Error('음성 파일을 재생하지 못했어요. 다시 재생하거나 편지를 받아 주세요.'), { retryable: true }));
-                startupTimer = setTimeout(() => fail(Object.assign(new Error('음성 파일 재생을 시작하지 못했어요. 다시 시도해 주세요.'), { retryable: true })), 15000);
+                stage = 'playback';
+                audio.onerror = () => fail(Object.assign(new Error('음성 파일을 재생하지 못했어요. 다시 재생하거나 편지를 받아 주세요.'), { retryable: true, code: 'TTS_PLAYBACK_ERROR' }));
+                startupTimer = setTimeout(() => fail(Object.assign(new Error('음성 파일 재생을 시작하지 못했어요. 다시 시도해 주세요.'), { retryable: true, code: 'TTS_PLAYBACK_START_TIMEOUT' })), 15000);
                 await audio.play();
             } catch (error) { fail(error); }
         }

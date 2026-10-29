@@ -91,3 +91,33 @@ WAV를 받은 뒤 브라우저 `canplay` 상태와 실제 duration까지 확인�
 60초 예산은 LLM 완료 후 최초 TTS prefetch 시점부터 계산하며 다운로드·브라우저 재생 준비를 포함합니다.
 기본 음성으로 전환한 뒤 늦은 서버 응답이 현재 재생을 가로채지 않습니다. 자동 유료 재호출도 하지 않습니다.
 기본 음성은 기기의 첫 한국어 음성을 우선하며, Gemini의 Kore/Iapetus와 동일한 목소리나 성별을 보장하지 않습니다.
+
+### 배포 오류와 기본 음성 전환 로그
+
+Vercel 프로젝트의 **Logs**에서 `tts.fallback`, `tts.error`, `tts.client_error`를 검색합니다. 서버 TTS 로그는 `/api/tts`, 브라우저에서 전달한 로그는 `/api/client-log` 함수에 남습니다. 클라이언트 이벤트는 `source: "browser"`로 구분합니다. 브라우저 콘솔에도 같은 클라이언트 이벤트가 표시됩니다.
+
+- `tts.request` → `tts.upstream_request` → `tts.upstream_response` → `tts.success` 또는 `tts.error`: 서버의 요청 단계, HTTP 상태, 음성 ID, 응답 형식·크기, 경과 시간과 네트워크 오류 코드를 확인합니다.
+- `tts.client_error`: 브라우저의 HTTP 오류, 네트워크 실패, 60초 요청 제한, 응답 검증 실패입니다.
+- `tts.fallback`: 실제로 기본 음성(또는 음성 미지원 시 자막)으로 전환하기로 결정한 기록입니다. `code`, `stage`, `elapsedMs`, `attempts`, `httpStatus`, `upstreamStatus`, `fallback`을 확인합니다.
+- `tts.playback_started`: 브라우저에서 생성된 음성이 실제 재생되기 시작한 기록입니다. 서버의 `tts.success`만으로 브라우저 재생 성공을 판단하지 않습니다.
+- `tts.browser_error`: 대체한 브라우저 음성마저 실패한 경우입니다.
+- `media.error`: 영상·BGM 재생 실패, `client.error`: 일반 JS 오류(가능한 경우 파일명·줄 번호), `chat.client_error`: 브라우저의 답장 요청 실패. ChatKHU 답장 API에도 단계·경과 시간·성공 여부를 남깁니다.
+
+대표 원인:
+
+| code | 의미 |
+| --- | --- |
+| `TTS_PREPARATION_TIMEOUT` | 선요청 시간을 포함한 60초 준비 제한으로 대체 음성 선택 |
+| `TTS_CLIENT_TIMEOUT` | 브라우저의 60초 fetch 제한 |
+| `TTS_TIMEOUT` | 서버의 외부 API 65초 제한 |
+| `TTS_UPSTREAM_ERROR` | 외부 API 거부. `upstreamStatus` 400=규격, 401/403=인증·권한, 429=한도, 5xx=공급자 오류 |
+| `TTS_NETWORK_ERROR` / `TTS_CONNECTION_ERROR` | 브라우저 / 서버 네트워크 문제. 서버에서는 가능한 경우 `networkCode`도 확인 |
+| `TTS_AUDIO_FORMAT` / `INVALID_AUDIO` | 서버 / 브라우저의 음성 형식 검증 실패 |
+| `TTS_MEDIA_LOAD_ERROR` / `TTS_MEDIA_LOAD_TIMEOUT` | 브라우저 파일 디코딩·준비 실패 / 15초 제한 |
+| `TTS_DURATION_MISMATCH` | 실제 오디오 길이와 서버 계산 길이 불일치 |
+| `TTS_AUTOPLAY_BLOCKED` | 브라우저 자동재생 정책으로 재생 거부 |
+| `TTS_PLAYBACK_ERROR` / `TTS_PLAYBACK_START_TIMEOUT` / `TTS_PLAYBACK_STALLED` | 재생 오류 / 시작 실패 / 장시간 재생 중단 |
+
+`requestId`로 서버 요청을 찾습니다. 응답 이전에 시간이 초과되어 서버 ID를 못 받은 경우 `clientRequestId`로 서버의 `tts.request`와 브라우저의 `tts.fallback`을 연결합니다. 서버가 나중에 성공하더라도 브라우저는 이미 기본 음성으로 전환했을 수 있습니다. 시간 초과는 공급자 내부 장애의 확정 근거가 아니며 로그에 기록된 마지막 단계까지만 판단합니다.
+
+로그에는 편지·답장 본문, 이름, 나이, API 키, 원본 오류 메시지·스택, 오디오 데이터·URL을 포함하지 않습니다. 클라이언트 수집 API는 허용한 이벤트·필드만 기록하고 동일 출처 검사 및 본문 크기 제한을 적용합니다. 브라우저 전송은 탭당 최대 40건으로 제한하며, 실패 시 재시도하지 않습니다. 오프라인·차단 확장프로그램·탭 종료 등으로 전송이 불가능하면 Vercel 로그에 남지 않을 수 있으며 브라우저 콘솔을 확인해야 합니다. 브라우저 로그는 진단용 보고이며 신뢰할 수 있는 서버 관측과 구분해야 합니다.

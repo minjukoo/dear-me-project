@@ -66,9 +66,10 @@
         }
         pendingName = null;
     }
-    function report(error, source) {
-        lastError = { source, name: error?.name || 'MediaError', mediaCode: bgm.error?.code || null };
+    function report(error, source, mediaCode = bgm.error?.code) {
+        lastError = { source, name: error?.name || 'MediaError', mediaCode: mediaCode || null };
         console.warn('dearme.audio', lastError);
+        window.DearMeDiagnostics?.report('media.error', { code: 'MEDIA_PLAYBACK_ERROR', media: source, mediaCode: lastError.mediaCode });
     }
     function beginLoadingExit() {
         loadingExit = true;
@@ -77,6 +78,9 @@
         fade(players.loading, 0, true, 1200);
     }
     function endLoadingExit() { loadingExit = false; sync(); }
+    for (const audio of Object.values(players)) {
+        audio.addEventListener('error', () => report(audio.error, 'bgm', audio.error?.code));
+    }
     async function sync() {
         if (loadingExit && !document.hidden && !leaving
             && document.querySelector('.screen.active')?.id === 'loading-screen') return;
@@ -145,16 +149,19 @@
         element.volume = isBridge ? 0 : 1;
         try { await element.play(); }
         catch (error) {
-            if (error.name !== 'NotAllowedError') throw error;
+            if (error.name !== 'NotAllowedError') { report(error, element.id, element.error?.code); throw error; }
             // Preserve the requested no-extra-button fallback on restrictive devices.
-            report(error, element.id);
+            report(error, element.id, element.error?.code);
             element.muted = true;
             await element.play();
         }
     }
     for (const name of ['playing', 'pause', 'ended', 'error']) {
         document.addEventListener(name, event => {
-            if (event.target instanceof HTMLVideoElement) sync();
+            if (event.target instanceof HTMLVideoElement) {
+                if (name === 'error') report(event.target.error, event.target.id, event.target.error?.code);
+                sync();
+            }
         }, true);
     }
     // Recover permission on an existing click/key interaction, without a new control.

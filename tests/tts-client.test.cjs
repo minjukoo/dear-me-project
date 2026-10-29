@@ -5,9 +5,10 @@ const vm = require('node:vm');
 const { normalizeAudio } = require('../lib/tts-audio.cjs');
 function client(fetch, clock = { now: 100000 }) {
   const timeouts = [];
-  const context = { window: {}, fetch, Date: { now: () => clock.now }, AbortSignal: { timeout(ms) { timeouts.push(ms); return new AbortController().signal; } }, URL: { createObjectURL: () => 'blob:test', revokeObjectURL() {} } };
+  const logs = [];
+  const context = { window: { DearMeDiagnostics: { report(event, details) { logs.push({ event, ...details }); } } }, fetch, Date: { now: () => clock.now }, AbortSignal: { timeout(ms) { timeouts.push(ms); return new AbortController().signal; } }, URL: { createObjectURL: () => 'blob:test', revokeObjectURL() {} } };
   vm.runInNewContext(fs.readFileSync(require.resolve('../tts-client.js'), 'utf8'), context);
-  return { api: context.window.DearMeTTS, timeouts };
+  return { api: context.window.DearMeTTS, timeouts, logs };
 }
 test('60-second budget includes prefetch time; successful cached audio is reused', async () => {
   let resolve, calls = 0;
@@ -40,4 +41,28 @@ test('Failure is cached, no automatic retries and the manual retry limit stays b
   await assert.rejects(api.get('대사', 'female', { retry: true }));
   await assert.rejects(api.get('대사', 'female', { retry: true }));
   assert.equal(calls, 3);
+});
+
+test('Timeout DOMException has a numeric code: classify it and log metadata without speech text', async () => {
+  const clock = { now: 100000 };
+  const { api, logs } = client(async () => {
+    clock.now += 60000;
+    throw new DOMException('PRIVATE_PROVIDER_DETAIL', 'TimeoutError');
+  }, clock);
+  await assert.rejects(api.get('PRIVATE_LETTER_TEXT', 'male'), error => error.code === 'TTS_CLIENT_TIMEOUT');
+  const error = logs.find(log => log.event === 'tts.client_error');
+  assert.equal(error.code, 'TTS_CLIENT_TIMEOUT');
+  assert.equal(error.elapsedMs, 60000);
+  assert.match(error.clientRequestId, /^[0-9a-f-]{36}$/);
+  assert.equal(JSON.stringify(logs).includes('PRIVATE'), false);
+});
+test('HTTP provider errors retain IDs and status for fallback correlation', async () => {
+  const requestId = '12345678-1234-4234-8234-123456789abc';
+  const { api, logs } = client(async () => new Response(JSON.stringify({ code: 'TTS_UPSTREAM_ERROR', retryable: true, requestId, upstreamStatus: 429 }), { status: 429, headers: { 'content-type': 'application/json', 'x-request-id': requestId } }));
+  await assert.rejects(api.get('PRIVATE_REPLY', 'female'), error => error.requestId === requestId && error.httpStatus === 429 && error.upstreamStatus === 429);
+  const details = api.info('PRIVATE_REPLY', 'female');
+  assert.equal(details.requestId, requestId);
+  assert.equal(details.stage, 'failed');
+  assert.equal(logs.find(log => log.event === 'tts.client_error').requestId, requestId);
+  assert.equal(JSON.stringify(logs).includes('PRIVATE'), false);
 });
