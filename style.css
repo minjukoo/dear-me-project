@@ -146,8 +146,13 @@ h2 { font-size: 1.5rem; margin-bottom: 10px; }
 @media (prefers-reduced-motion: reduce) { #link-video { transition: none; } }
 
 /* Supplied art is scoped to opening/start screens; other button themes stay intact. */
-#start-btn.opening-art { width: clamp(240px, 28vw, 360px); max-width: calc(100vw - 32px); min-width: 0; aspect-ratio: 2206 / 713; padding: 0; border: 0; border-radius: 0; box-shadow: none; font-size: 0; background: transparent url('/assets/buttons/opening/opening_start_button.png') center / contain no-repeat; }
 #skip-opening-btn.opening-art { width: clamp(180px, 18vw, 240px); max-width: calc(100vw - 40px); min-height: 44px; aspect-ratio: 2137 / 736; padding: 0; border: 0; border-radius: 0; font-size: 0; background: transparent url('/assets/buttons/opening/opening_skip_button.png') center / contain no-repeat; }
 .fullscreen-toggle.opening-art { width: clamp(168px, 16vw, 230px); min-height: 44px; aspect-ratio: 2206 / 713; padding: 0; border: 0; border-radius: 0; font-size: 0; background: transparent url('/assets/buttons/opening/opening_full_button.png') center / contain no-repeat; }
 .fullscreen-toggle.opening-art[aria-pressed="true"] { background-image: url('/assets/buttons/opening/opening_fullout_button.png'); }
 #start-btn.opening-art:focus-visible, #skip-opening-btn.opening-art:focus-visible, .fullscreen-toggle.opening-art:focus-visible { outline: 3px solid #6b705c; outline-offset: 3px; }
+
+/* Glass artwork is used only on start, setup and final screens. */
+#start-btn.glass-art { width: clamp(280px, 30vw, 400px); max-width: calc(100vw - 32px); min-width: 0; aspect-ratio: 2103 / 748; padding: 0; border: 0; border-radius: 0; box-shadow: none; font-size: 0; background: transparent url('/assets/buttons/glass/glass_start_button.png') center / contain no-repeat; }
+.fullscreen-toggle.glass-art { width: clamp(210px, 20vw, 280px); min-height: 44px; aspect-ratio: 2135 / 737; padding: 0; border: 0; border-radius: 0; font-size: 0; background: transparent url('/assets/buttons/glass/glass_full_button.png') center / contain no-repeat; }
+.fullscreen-toggle.glass-art[aria-pressed="true"] { background-image: url('/assets/buttons/glass/glass_fullout_button.png'); }
+#start-btn.glass-art:focus-visible, .fullscreen-toggle.glass-art:focus-visible { outline: 3px solid #6b705c; outline-offset: 3px; }
