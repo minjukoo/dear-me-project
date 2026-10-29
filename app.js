@@ -230,7 +230,7 @@ function showStart() {
     window.DearMeSound.fadeVideoOut(video);
     $('#skip-opening-btn').hidden = true;
     $('#opening-screen').classList.add('opening-fading');
-    setTimeout(startSetup, window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 600);
+    setTimeout(startSetup, video.ended || window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 600);
 }
 let openingStarted = false;
 $('#opening-trigger').addEventListener('click', () => {
@@ -248,7 +248,9 @@ $('#skip-opening-btn').addEventListener('click', showStart);
 // Lower the original soundtrack before the last frame, rather than cutting it at ended.
 video.addEventListener('timeupdate', () => {
     if (!openingFinishing && Number.isFinite(video.duration) && video.duration > 0) {
-        video.volume = Math.min(1, Math.max(0, (video.duration - video.currentTime) / 1.2));
+        const remaining = video.duration - video.currentTime;
+        video.volume = Math.min(1, Math.max(0, remaining / 2));
+        if (remaining <= .6) $('#opening-screen').classList.add('opening-fading');
     }
 });
 video.addEventListener('ended', showStart);

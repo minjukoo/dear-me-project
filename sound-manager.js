@@ -22,13 +22,14 @@
         cancelAnimationFrame(fades.get(audio));
         fades.delete(audio);
     }
-    function fade(audio, target, pauseAtEnd = false) {
+    function fade(audio, target, pauseAtEnd = false, duration = 2600) {
         cancelFade(audio);
         const initial = audio.volume;
         const started = performance.now();
         function step(now) {
-            const progress = Math.max(0, Math.min(1, (now - started) / 900));
-            audio.volume = initial + (target - initial) * progress;
+            const progress = Math.max(0, Math.min(1, (now - started) / duration));
+            const eased = progress * progress * (3 - 2 * progress);
+            audio.volume = initial + (target - initial) * eased;
             if (progress < 1) fades.set(audio, requestAnimationFrame(step));
             else {
                 fades.delete(audio);
@@ -54,8 +55,7 @@
         if (id === 'loading-screen') {
             const link = document.getElementById('link-video');
             const bridging = link && !link.paused && !link.ended;
-            const nearEnd = link && Number.isFinite(link.duration) && link.duration - link.currentTime <= 1;
-            return bridging && !nearEnd ? null : 'website';
+            return bridging ? null : 'website';
         }
         return ['start-screen', 'setup-screen', 'letter-screen', 'character-select-screen', 'ending-screen', 'result-screen'].includes(id) ? 'website' : null;
     }
@@ -81,10 +81,15 @@
         }
         const run = ++revision;
         if (!wanted) { stopCurrent(); return; }
-        const outgoing = bgm;
         bgm = players[wanted];
         cancelFade(bgm);
-        if (outgoing !== bgm && !outgoing.paused) fade(outgoing, 0, true);
+        // Keep a single BGM audible: mixed video soundtracks already contain music.
+        for (const audio of Object.values(players)) {
+            if (audio === bgm) continue;
+            cancelFade(audio);
+            audio.pause();
+            audio.volume = 0;
+        }
         currentName = wanted;
         bgm.muted = false;
         bgm.volume = 0;
@@ -120,6 +125,11 @@
         }
     }
     async function playVideo(element) {
+        document.querySelectorAll('video').forEach(other => {
+            if (other !== element) other.pause();
+        });
+        revision++;
+        stopCurrent();
         element.muted = false;
         element.defaultMuted = false;
         element.volume = 1;
@@ -132,7 +142,7 @@
             await element.play();
         }
     }
-    // Blend the bridge soundtrack into the waiting music before the picture changes.
+    // Fade each embedded soundtrack, then start waiting music after the bridge ends.
     document.addEventListener('timeupdate', event => {
         const element = event.target;
         if (!(element instanceof HTMLVideoElement) || !['send-video', 'link-video'].includes(element.id)) return;
@@ -152,7 +162,7 @@
         if (!unlocked) return;
         if (desiredTrack() && bgm.paused && !pendingName && !bgm.error) sync();
         document.querySelectorAll('.screen.active video').forEach(video => {
-            if (!video.paused && !video.ended && video.muted) { video.muted = false; video.volume = 1; }
+            if (!video.paused && !video.ended && video.muted) { video.muted = false; }
         });
     }
     document.addEventListener('pointerdown', recover, true);
@@ -167,6 +177,6 @@
     window.addEventListener('pageshow', () => { leaving = false; sync(); });
     window.DearMeSound = {
         unlock, playVideo, sync, fadeVideoOut,
-        getState: () => ({ unlocked, track: !bgm.paused ? currentName : null, paused: bgm.paused, muted: bgm.muted, volume: bgm.volume, readyState: bgm.readyState, source: bgm.currentSrc, lastError }),
+        getState: () => ({ unlocked, track: !bgm.paused ? currentName : null, paused: bgm.paused, muted: bgm.muted, volume: bgm.volume, readyState: bgm.readyState, source: bgm.currentSrc, layers: Object.entries(players).filter(([, audio]) => !audio.paused && audio.volume > 0).map(([name]) => name), lastError }),
     };
 })();
