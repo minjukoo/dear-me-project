@@ -175,3 +175,6 @@ h2 { font-size: 1.5rem; margin-bottom: 10px; }
 }
 
 button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 3px solid var(--focus-color); outline-offset: 3px; }
+
+.tts-error-panel { position: absolute; z-index: 4; top: max(90px, env(safe-area-inset-top)); left: 50%; transform: translateX(-50%); width: min(420px, calc(100% - 32px)); padding: 18px; border: 1px solid #7c8cac; border-radius: 14px; background: #19243bef; color: #fff; line-height: 1.6; }
+.tts-error-panel .btn-primary { margin-top: 12px; }

@@ -190,6 +190,9 @@ function receiveReply(result) {
         showScreen('safety-screen', '#safety-title');
         return;
     }
+    if (['male', 'female'].includes(result.gender)) {
+        window.DearMeTTS.get(window.DearMeTTS.script(result.reply), result.gender).catch(() => {});
+    }
     $('#letter-reply').textContent = result.reply;
     $('#result-recipient').textContent = `${result.nickname}님에게 도착한 편지`;
     $('#storage-status').textContent = '';
