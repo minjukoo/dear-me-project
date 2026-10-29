@@ -27,7 +27,7 @@
         const initial = audio.volume;
         const started = performance.now();
         function step(now) {
-            const progress = Math.min(1, (now - started) / 900);
+            const progress = Math.max(0, Math.min(1, (now - started) / 900));
             audio.volume = initial + (target - initial) * progress;
             if (progress < 1) fades.set(audio, requestAnimationFrame(step));
             else {
@@ -41,7 +41,7 @@
         const initial = element.volume;
         const started = performance.now();
         function step(now) {
-            const progress = Math.min(1, (now - started) / duration);
+            const progress = Math.max(0, Math.min(1, (now - started) / duration));
             element.volume = initial * (1 - progress);
             if (progress < 1) requestAnimationFrame(step);
         }
