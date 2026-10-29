@@ -18,6 +18,7 @@
     let revision = 0;
     let leaving = false;
     let lastError = null;
+    let loadingExit = false;
     const fades = new Map();
     function cancelFade(audio) {
         cancelAnimationFrame(fades.get(audio));
@@ -69,7 +70,16 @@
         lastError = { source, name: error?.name || 'MediaError', mediaCode: bgm.error?.code || null };
         console.warn('dearme.audio', lastError);
     }
+    function beginLoadingExit() {
+        loadingExit = true;
+        revision++;
+        pendingName = null;
+        fade(players.loading, 0, true, 1200);
+    }
+    function endLoadingExit() { loadingExit = false; sync(); }
     async function sync() {
+        if (loadingExit && !document.hidden && !leaving
+            && document.querySelector('.screen.active')?.id === 'loading-screen') return;
         const wanted = desiredTrack();
         if (wanted && wanted === currentName && (!bgm.paused || pendingName === wanted)) {
             bgm.muted = false;
@@ -166,7 +176,7 @@
     });
     window.addEventListener('pageshow', () => { leaving = false; sync(); });
     window.DearMeSound = {
-        unlock, playVideo, sync, fadeVideoOut,
+        unlock, playVideo, sync, fadeVideoOut, beginLoadingExit, endLoadingExit,
         getState: () => ({ unlocked, track: !bgm.paused ? currentName : null, paused: bgm.paused, muted: bgm.muted, volume: bgm.volume, readyState: bgm.readyState, position: bgm.currentTime, source: bgm.currentSrc, layers: Object.entries(players).filter(([, audio]) => !audio.paused && audio.volume > 0).map(([name]) => name), lastError }),
     };
 })();

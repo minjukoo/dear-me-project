@@ -158,7 +158,7 @@ function finishSendVideo() {
     sendBridgeTimer = setTimeout(() => {
         sendBridgeTimer = null;
         if (flow === 'pending' && run === sendRun && $('#send-screen').classList.contains('active')) startLink();
-    }, 2000);
+    }, 1300);
 }
 sendVideo.addEventListener('playing', () => {
     cancelAnimationFrame(sendFadeFrame);

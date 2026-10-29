@@ -22,6 +22,7 @@
     let speaking = false;
     let frame = 'normal';
     let backgroundPromise = null;
+    let loadingTransition = null;
     function navigate(id, heading) {
         window.dispatchEvent(new CustomEvent('dearme:screen', { detail: { id, heading } }));
     }
@@ -55,6 +56,12 @@
     }
     function stop() {
         token++;
+        if (loadingTransition) {
+            loadingTransition.abort();
+            loadingTransition = null;
+            $('loading-screen').classList.remove('loading-exit');
+            window.DearMeSound.endLoadingExit();
+        }
         clearTimers();
         if (cancelAudioPreparation) cancelAudioPreparation();
         if (currentAudio) { currentAudio.pause(); currentAudio.removeAttribute('src'); currentAudio.load(); currentAudio = null; }
@@ -117,6 +124,34 @@
         if (!window.DearMeTTS) navigate('player-screen', '#player-title');
         $('letter-subtitle').textContent = '';
         $('player-status').textContent = supported ? '편지를 읽고 있어요.' : '음성이 지원되지 않아 자막으로 편지를 전해요.';
+        async function revealPlayer() {
+            if (run !== token) return false;
+            if (!$('loading-screen').classList.contains('active')) return true;
+            // Reuse one transition if an audio failure arrives while fading out.
+            if (loadingTransition) return loadingTransition.done;
+            const controller = new AbortController();
+            loadingTransition = controller;
+            const wait = ms => new Promise(resolve => {
+                const onAbort = () => { clearTimeout(timer); resolve(false); };
+                const timer = setTimeout(() => {
+                    controller.signal.removeEventListener('abort', onAbort);
+                    resolve(true);
+                }, ms);
+                controller.signal.addEventListener('abort', onAbort, { once: true });
+            });
+            controller.done = (async () => {
+                $('loading-screen').classList.add('loading-exit');
+                window.DearMeSound.beginLoadingExit();
+                if (!await wait(1200) || run !== token) return false;
+                if (!await wait(1000) || run !== token) return false;
+                navigate('player-screen', '#player-title');
+                $('loading-screen').classList.remove('loading-exit');
+                loadingTransition = null;
+                window.DearMeSound.endLoadingExit();
+                return true;
+            })();
+            return controller.done;
+        }
         function animateMouth() {
             if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
                 mouthTimer = setInterval(() => setFrame(frame === 'mouth' ? 'normal' : 'mouth'), 250);
@@ -200,7 +235,7 @@
         }
         async function readGateway() {
             let gatewayAbandoned = false;
-            const fail = () => {
+            const fail = async () => {
                 if (run !== token || gatewayAbandoned) return;
                 gatewayAbandoned = true;
                 clearTimers();
@@ -214,7 +249,7 @@
                 }
                 $('tts-error-panel').hidden = true;
                 setFrame('normal');
-                navigate('player-screen', '#player-title');
+                if (!await revealPlayer() || run !== token) return;
                 $('player-status').textContent = supported
                     ? '기기의 기본 한국어 음성으로 편지를 읽어요.'
                     : '기본 음성을 지원하지 않아 자막으로 편지를 전해요.';
@@ -287,8 +322,10 @@
                 if (!Number.isFinite(audio.duration) || Math.abs(audio.duration - asset.durationSeconds) > .2) {
                     throw Object.assign(new Error('음성 파일의 실제 길이가 응답과 달라요. 응답 규격을 확인해 주세요.'), { retryable: false });
                 }
+                clearTimeout(gatewayDeadlineTimer);
+                gatewayDeadlineTimer = null;
                 $('player-screen').append($('tts-error-panel'));
-                navigate('player-screen', '#player-title');
+                if (!await revealPlayer() || run !== token || gatewayAbandoned) return;
                 audio.onerror = () => fail(Object.assign(new Error('음성 파일을 재생하지 못했어요. 다시 재생하거나 편지를 받아 주세요.'), { retryable: true }));
                 startupTimer = setTimeout(() => fail(Object.assign(new Error('음성 파일 재생을 시작하지 못했어요. 다시 시도해 주세요.'), { retryable: true })), 15000);
                 await audio.play();

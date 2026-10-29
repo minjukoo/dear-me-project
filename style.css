@@ -219,3 +219,17 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
     opacity: var(--send-darkness, 0);
     pointer-events: none;
 }
+
+/* Once speech is ready, fade the clock scene to black before revealing the speaker. */
+#loading-screen::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 5;
+    background: #000;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 1.2s linear;
+}
+#loading-screen.loading-exit::after { opacity: 1; }
+body:has(#loading-screen.active.loading-exit) #fullscreen-toggle { visibility: hidden; }
