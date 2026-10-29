@@ -83,6 +83,14 @@
         setFrame('normal');
         $('character-next-btn').disabled = !character;
     }
+    let resolveCharacter = null;
+    function requestCharacter() {
+        stop();
+        chooseCharacter('');
+        $('character-select').value = '';
+        navigate('character-select-screen', '#character-choice-title');
+        return new Promise(resolve => { resolveCharacter = resolve; });
+    }
     function prepare(data) {
         stop();
         result = data;
@@ -336,7 +344,14 @@
     }
     $('tts-retry-btn').addEventListener('click', () => play(true));
     $('character-select').addEventListener('change', event => chooseCharacter(event.target.value));
-    $('character-next-btn').addEventListener('click', play);
+    $('character-next-btn').addEventListener('click', () => {
+        if (!character) return;
+        if (resolveCharacter) {
+            const resolve = resolveCharacter;
+            resolveCharacter = null;
+            resolve(character);
+        } else play();
+    });
     $('replay-letter-btn').addEventListener('click', play);
     function receiveLetter() {
         if (!result || result.safetyType !== 'normal') return;
@@ -357,5 +372,5 @@
         }
     });
     window.addEventListener('pagehide', stop);
-    window.DearMePlayer = { prepare, stop };
+    window.DearMePlayer = { prepare, stop, requestCharacter };
 })();

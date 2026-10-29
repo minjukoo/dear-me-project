@@ -48,6 +48,11 @@
         }
         requestAnimationFrame(step);
     }
+    function fadeDuration() {
+        const link = document.getElementById('link-video');
+        return document.querySelector('.screen.active')?.id === 'loading-screen'
+            && link && !link.paused && !link.ended ? 1000 : 2600;
+    }
     function desiredTrack() {
         if (!unlocked || document.hidden || leaving) return null;
         const id = document.querySelector('.screen.active')?.id;
@@ -55,7 +60,8 @@
         if (id === 'loading-screen') {
             const link = document.getElementById('link-video');
             const bridging = link && !link.paused && !link.ended;
-            return bridging ? null : 'website';
+            const nearEnd = link && Number.isFinite(link.duration) && link.duration - link.currentTime <= 1;
+            return bridging && !nearEnd ? null : 'website';
         }
         return ['start-screen', 'setup-screen', 'letter-screen', 'character-select-screen', 'ending-screen', 'result-screen'].includes(id) ? 'website' : null;
     }
@@ -76,7 +82,7 @@
         if (wanted && wanted === currentName && (!bgm.paused || pendingName === wanted)) {
             bgm.muted = false;
             // Keep both the playhead and an in-progress fade across screen changes.
-            if (!fades.has(bgm) && bgm.volume !== tracks[wanted].volume) fade(bgm, tracks[wanted].volume);
+            if (!fades.has(bgm) && bgm.volume !== tracks[wanted].volume) fade(bgm, tracks[wanted].volume, false, fadeDuration());
             return;
         }
         const run = ++revision;
@@ -100,7 +106,7 @@
             if (run !== revision || wanted !== desiredTrack()) return;
             pendingName = null;
             lastError = null;
-            fade(bgm, tracks[wanted].volume);
+            fade(bgm, tracks[wanted].volume, false, fadeDuration());
         } catch (error) {
             if (run !== revision) return;
             pendingName = null;
@@ -142,13 +148,12 @@
             await element.play();
         }
     }
-    // Fade each embedded soundtrack, then start waiting music after the bridge ends.
+    // Only the bridge tail overlaps waiting music; send and bridge remain exclusive.
     document.addEventListener('timeupdate', event => {
         const element = event.target;
         if (!(element instanceof HTMLVideoElement) || !['send-video', 'link-video'].includes(element.id)) return;
-        if (Number.isFinite(element.duration) && element.duration > 0) {
-            const tail = element.id === 'link-video' ? 1 : .45;
-            element.volume = Math.max(0, Math.min(1, element.currentTime / .25, (element.duration - element.currentTime) / tail));
+        if (element.id === 'link-video' && Number.isFinite(element.duration) && element.duration > 0) {
+            element.volume = Math.max(0, Math.min(1, (element.duration - element.currentTime) / 1));
         }
         if (element.id === 'link-video' && element.closest('.screen.active')) sync();
     }, true);

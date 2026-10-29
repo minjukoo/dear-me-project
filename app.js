@@ -227,7 +227,6 @@ let openingFinishing = false;
 function showStart() {
     if (!$('#opening-screen').classList.contains('active') || openingFinishing) return;
     openingFinishing = true;
-    window.DearMeSound.fadeVideoOut(video);
     $('#skip-opening-btn').hidden = true;
     $('#opening-screen').classList.add('opening-fading');
     setTimeout(startSetup, video.ended || window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 600);
@@ -245,11 +244,10 @@ $('#opening-trigger').addEventListener('click', () => {
     openingPlayback.catch(showStart);
 });
 $('#skip-opening-btn').addEventListener('click', showStart);
-// Lower the original soundtrack before the last frame, rather than cutting it at ended.
+// Fade the picture only; retain the original opening soundtrack volume.
 video.addEventListener('timeupdate', () => {
     if (!openingFinishing && Number.isFinite(video.duration) && video.duration > 0) {
         const remaining = video.duration - video.currentTime;
-        video.volume = Math.min(1, Math.max(0, remaining / 2));
         if (remaining <= .6) $('#opening-screen').classList.add('opening-fading');
     }
 });
@@ -306,6 +304,11 @@ $('#letter-form').addEventListener('submit', async (event) => {
         return;
     }
     if (!await confirmLetter()) return;
+    sending = true;
+    updateLetterButton();
+    const playbackGender = ['male', 'female'].includes(window.dearMeProfile.gender)
+        ? window.dearMeProfile.gender
+        : await window.DearMePlayer.requestCharacter();
     const message = letter.value.trim();
     sending = true;
     letter.readOnly = true;
@@ -345,7 +348,7 @@ $('#letter-form').addEventListener('submit', async (event) => {
         receiveReply({
             nickname: window.dearMeProfile.nickname,
             age: window.dearMeProfile.age,
-            gender: window.dearMeProfile.gender,
+            gender: playbackGender,
             message,
             reply: data.reply,
             safetyType: data.safetyType === 'danger' ? 'danger' : 'normal',
