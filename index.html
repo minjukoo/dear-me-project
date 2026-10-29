@@ -20,7 +20,7 @@
     <meta name="twitter:description" content="지금의 고민을 미래의 나에게 보내고, 나에게 도착한 편지를 만나보세요.">
     <meta name="twitter:image" content="https://dear-me-project.vercel.app/start.png">
     <link rel="icon" type="image/png" href="/favicon.png">
-    <link rel="stylesheet" href="style.css?v=4">
+    <link rel="stylesheet" href="style.css?v=5">
     <script src="diagnostics.js" defer></script>
     <script src="media-layout.js" defer></script>
     <script src="sound-manager.js?v=10" defer></script>
@@ -110,7 +110,7 @@
         <h2 id="loading-title" class="visually-hidden" tabindex="-1">미래의 내가 답장을 쓰고 있어요</h2>
         <div class="clock-scene" aria-hidden="true">
             <img id="loading-background" class="clock-background" src="/loading_bg.png" alt="" draggable="false">
-            <img class="clock-needle" src="/loading_needle.png" alt="" draggable="false">
+            <div class="clock-needle" aria-hidden="true"></div>
         </div>
         <video id="link-video" muted playsinline preload="auto" src="/lingking.mp4" aria-label="시계로 이어지는 연결 영상"></video>
         <p class="loading-caption" role="status">미래의 내가 답장을 쓰고 있어요.<br>잠시만 기다려 주세요.</p>

@@ -140,7 +140,7 @@ h2 { font-size: 1.5rem; margin-bottom: 10px; }
 #loading-screen { position: fixed; inset: 0; width: 100%; height: 100%; min-height: 0; max-width: none; padding: 0; z-index: 50; overflow: hidden; background: #e8e7f1; }
 #loading-screen.active { animation: none; }
 .clock-scene { position: absolute; left: 50%; top: 50%; width: max(100vw, 177.683316dvh); height: max(56.279904vw, 100dvh); transform: translate(-50%, -50%); }
-.clock-needle { visibility: hidden; position: absolute; left: -.239234%; top: .425080%; width: 100%; height: 100%; max-width: none; transform-origin: 49.760766% 51.753454%; animation: clock-turn 8s linear infinite; animation-play-state: paused; }
+.clock-needle { background: url('/loading_needle.png') center / 100% 100% no-repeat; pointer-events: none; user-select: none; visibility: hidden; position: absolute; left: -.239234%; top: .425080%; width: 100%; height: 100%; max-width: none; transform-origin: 49.760766% 51.753454%; animation: clock-turn 8s linear infinite; animation-play-state: paused; }
 #loading-screen.active.clock-waiting .clock-needle { animation-play-state: running; }
 .clock-scene.background-ready .clock-needle { visibility: visible; }
 .clock-background { position: absolute; inset: 0; width: 100%; height: 100%; }
