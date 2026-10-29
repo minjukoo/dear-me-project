@@ -83,6 +83,8 @@ const clockScene = document.querySelector('.clock-scene');
 let linkStarted = false;
 let linkFinished = false;
 let sendRun = 0;
+let sendBridgeTimer = null;
+let sendFadeFrame = null;
 const media = [sendVideo, linkVideo];
 // Decode the background before exposing the clock or its independently loaded hand.
 const clockDecoded = $('#loading-background').decode().then(() => {
@@ -136,7 +138,7 @@ function playAsset(element, filename) {
     });
 }
 function showResult() {
-    if (!latestResult || flow !== 'pending' || (linkStarted && !linkFinished)) return;
+    if (!latestResult || flow !== 'pending' || !sendFinished || !linkFinished) return;
     flow = 'result';
     window.DearMePlayer.prepare(latestResult);
 }
@@ -144,10 +146,32 @@ function finishSendVideo() {
     // Ignore duplicate ended/error/skip events from the same playback.
     if (flow !== 'pending' || sendFinished) return;
     sendFinished = true;
+    cancelAnimationFrame(sendFadeFrame);
+    sendVideo.volume = 0;
     sendVideo.pause();
-    // Always play the bridge, including when the reply arrived during the send video.
-    startLink();
+    $('#send-screen').style.setProperty('--send-darkness', '1');
+    $('#resume-send-btn').hidden = true;
+    fullscreenButton.hidden = true;
+    const run = sendRun;
+    // Keep the already-fetched reply waiting too: the silent pause is part of the sequence.
+    clearTimeout(sendBridgeTimer);
+    sendBridgeTimer = setTimeout(() => {
+        sendBridgeTimer = null;
+        if (flow === 'pending' && run === sendRun && $('#send-screen').classList.contains('active')) startLink();
+    }, 2000);
 }
+sendVideo.addEventListener('playing', () => {
+    cancelAnimationFrame(sendFadeFrame);
+    function fadeSendTail() {
+        if (flow !== 'pending' || sendFinished || sendVideo.paused) return;
+        const remaining = sendVideo.duration - sendVideo.currentTime;
+        const volume = Number.isFinite(remaining) ? Math.max(0, Math.min(1, remaining / 1.2)) : 1;
+        sendVideo.volume = volume;
+        $('#send-screen').style.setProperty('--send-darkness', String(1 - volume));
+        sendFadeFrame = requestAnimationFrame(fadeSendTail);
+    }
+    fadeSendTail();
+});
 sendVideo.addEventListener('ended', finishSendVideo);
 sendVideo.addEventListener('error', finishSendVideo);
 $('#resume-send-btn').addEventListener('click', () => {
@@ -195,10 +219,15 @@ function receiveReply(result) {
     } catch {
         $('#storage-status').textContent = '브라우저 임시 저장을 사용할 수 없어 이 화면에서만 답장을 볼 수 있어요.';
     }
-    if (sendFinished && (!linkStarted || linkFinished)) showResult();
+    if (sendFinished && linkFinished) showResult();
 }
 
 function showScreen(id, heading) {
+    if (id !== 'send-screen') {
+        clearTimeout(sendBridgeTimer);
+        sendBridgeTimer = null;
+        cancelAnimationFrame(sendFadeFrame);
+    }
     fullscreenButton.classList.toggle('opening-art', id === 'opening-screen' || id === 'send-screen');
     fullscreenButton.classList.toggle('gold-art', id === 'letter-screen');
     fullscreenButton.classList.toggle('dark-art', id === 'player-screen' || id === 'ending-screen');
@@ -321,6 +350,9 @@ $('#letter-form').addEventListener('submit', async (event) => {
     linkStarted = false;
     linkFinished = false;
     sendRun++;
+    clearTimeout(sendBridgeTimer);
+    cancelAnimationFrame(sendFadeFrame);
+    $('#send-screen').style.setProperty('--send-darkness', '0');
     $('#loading-screen').classList.remove('clock-waiting');
     linkVideo.classList.remove('link-visible');
     linkVideo.currentTime = 0;

@@ -208,3 +208,14 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .letter-guide-text #letter-privacy-help { margin-bottom: 10px; color: #4b5870; }
 .letter-guide-text #letter-length-help { margin-bottom: 20px; font-size: .8rem; }
 .letter-input-label { display: block; margin-bottom: 12px; font-weight: 600; color: var(--text-color); }
+
+/* Fade the whole send scene (including portrait fill) to a silent black pause. */
+#send-screen::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 3;
+    background: #000;
+    opacity: var(--send-darkness, 0);
+    pointer-events: none;
+}
