@@ -9,24 +9,26 @@ function client(fetch, clock = { now: 100000 }) {
   vm.runInNewContext(fs.readFileSync(require.resolve('../tts-client.js'), 'utf8'), context);
   return { api: context.window.DearMeTTS, timeouts };
 }
-test('30-second budget includes prefetch time; successful cached audio is reused', async () => {
+test('60-second budget includes prefetch time; successful cached audio is reused', async () => {
   let resolve, calls = 0;
   const pending = new Promise(r => resolve = r);
   const clock = { now: 100000 };
   const { api, timeouts } = client(async () => { calls++; return pending; }, clock);
   const job = api.get('대사', 'male');
-  assert.equal(api.remaining('대사', 'male'), 30000);
+  assert.equal(api.remaining('대사', 'male'), 60000);
   clock.now += 12000;
-  assert.equal(api.remaining('대사', 'male'), 18000);
-  clock.now += 18001;
+  assert.equal(api.remaining('대사', 'male'), 48000);
+  clock.now += 18000;
+  assert.equal(api.remaining('대사', 'male'), 30000);
+  clock.now += 30001;
   assert.equal(api.remaining('대사', 'male'), 0);
   const wav = normalizeAudio(Buffer.alloc(48000), 'audio/pcm').buffer;
   resolve(new Response(wav, { headers: { 'content-type': 'audio/wav', 'x-audio-duration': '1', 'x-tts-voice': 'Iapetus' } }));
   const data = await job;
   assert.equal((await api.get('대사', 'male')).url, data.url);
   assert.equal(calls, 1);
-  assert.deepEqual(timeouts, [30000]);
-  assert.equal(api.remaining('대사', 'male'), 30000);
+  assert.deepEqual(timeouts, [60000]);
+  assert.equal(api.remaining('대사', 'male'), 60000);
 });
 test('Failure is cached, no automatic retries and the manual retry limit stays bounded', async () => {
   let calls = 0;

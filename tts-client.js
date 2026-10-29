@@ -2,7 +2,7 @@
 (() => {
     const cache = new Map();
     const maxAttempts = 3;
-    const preparationLimitMs = 30000;
+    const preparationLimitMs = 60000;
     function failure(message, code, retryable = false, attempts = 0) {
         return Object.assign(new Error(message), { code, retryable, attempts });
     }

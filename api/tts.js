@@ -22,7 +22,7 @@ module.exports = async function handler(req, res) {
     const response = await fetch('https://factchat-cloud.mindlogic.ai/v1/gateway/audio/speech/', {
       method: 'POST', headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ model: 'gemini-2.5-flash-preview-tts', input: body.text.trim(), voice: VOICES[body.gender] }),
-      signal: AbortSignal.timeout(50000),
+      signal: AbortSignal.timeout(65000),
     });
     if (!response.ok) {
       const retryable = response.status === 429 || response.status >= 500;
@@ -40,7 +40,7 @@ module.exports = async function handler(req, res) {
     console.info(JSON.stringify({ event: 'tts.success', requestId, voice: VOICES[body.gender], durationSeconds: audio.durationSeconds, elapsedMs: Date.now() - start, pcmFormatAssumed: audio.pcmFormatAssumed }));
     return res.status(200).send(audio.buffer);
   } catch (error) {
-    if (error.name === 'TimeoutError') return fail(504, 'TTS_TIMEOUT', '음성 생성이 50초를 초과했습니다. 다시 시도해 주세요.', true);
+    if (error.name === 'TimeoutError') return fail(504, 'TTS_TIMEOUT', '음성 생성이 65초를 초과했습니다. 다시 시도해 주세요.', true);
     if (/AUDIO|WAV|PCM/.test(error.message)) return fail(502, 'TTS_AUDIO_FORMAT', '음성 응답 형식을 확인하지 못했습니다. API 응답 규격 확인이 필요합니다.');
     return fail(502, 'TTS_CONNECTION_ERROR', '음성 서비스에 연결하지 못했습니다.', true);
   }
