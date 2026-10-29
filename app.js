@@ -202,6 +202,7 @@ function receiveReply(result) {
 }
 
 function showScreen(id, heading) {
+    fullscreenButton.classList.toggle('opening-art', id === 'opening-screen' || id === 'start-screen');
     if (id !== 'opening-screen' && id !== 'start-screen'
         && ((document.documentElement.requestFullscreen && document.fullscreenEnabled !== false)
             || document.documentElement.webkitRequestFullscreen)) fullscreenButton.hidden = false;

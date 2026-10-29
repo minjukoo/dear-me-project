@@ -10,7 +10,7 @@
     <script src="app.js" defer></script>
 </head>
 <body>
-    <button id="fullscreen-toggle" class="fullscreen-toggle" type="button" aria-pressed="false" hidden>전체화면</button>
+    <button id="fullscreen-toggle" class="fullscreen-toggle opening-art" type="button" aria-pressed="false" hidden>전체화면</button>
     <p id="fullscreen-status" class="visually-hidden" role="status"></p>
     <p id="orientation-hint" class="orientation-hint" role="status" hidden>기기를 가로로 돌리면 더 크게 볼 수 있어요.</p>
     <!-- 1. 오프닝 화면 -->
@@ -20,13 +20,13 @@
                 <source src="/opening.mp4" type="video/mp4">
             </video>
         </div>
-        <button id="opening-trigger" type="button"><span>화면을 클릭하거나 터치하면 시작해요</span></button>
-        <button id="skip-opening-btn" class="opening-skip" type="button" hidden>영상 건너뛰기</button>
+        <button id="opening-trigger" type="button" aria-label="화면을 클릭하거나 터치하면 시작해요"><span class="opening-invitation"><img src="/assets/buttons/opening/start_start_button.png" alt="" draggable="false"></span></button>
+        <button id="skip-opening-btn" class="opening-skip opening-art" type="button" hidden>영상 건너뛰기</button>
         <h1 id="opening-title" class="visually-hidden">Dear, Me 오프닝</h1>
     </section>
 
     <section id="start-screen" class="screen" aria-label="Dear, Me 시작 화면" hidden>
-        <button id="start-btn" class="btn-primary" type="button">시작하기</button>
+        <button id="start-btn" class="btn-primary opening-art" type="button">시작하기</button>
     </section>
 
     <!-- 2. 별명과 나이 설정 화면 -->
