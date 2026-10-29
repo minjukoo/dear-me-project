@@ -17,6 +17,7 @@
     let nextTimer = null;
     let currentUtterance = null;
     let currentAudio = null;
+    let cancelAudioPreparation = null;
     let speaking = false;
     let frame = 'normal';
     let backgroundPromise = null;
@@ -53,6 +54,7 @@
     function stop() {
         token++;
         clearTimers();
+        if (cancelAudioPreparation) cancelAudioPreparation();
         if (currentAudio) { currentAudio.pause(); currentAudio.removeAttribute('src'); currentAudio.load(); currentAudio = null; }
         $('tts-error-panel').hidden = true;
         if (speaking && synth) synth.cancel();
@@ -93,11 +95,16 @@
     function play(retry = false) {
         if (!result || result.safetyType !== 'normal' || !character || speaking) return;
         stop();
+        if (window.DearMeTTS) {
+            $('loading-screen').classList.add('clock-waiting');
+            $('link-video').classList.remove('link-visible');
+            navigate('loading-screen', '#loading-title');
+        }
         const run = token;
         const sentences = result.reply.match(/[^.!?。！？\n]+(?:[.!?。！？]+|\n+|$)/gu)?.map(s => s.trim()).filter(Boolean) || [result.reply];
         const voice = supported && synth.getVoices().find(v => v.lang.toLowerCase().startsWith('ko'));
         speaking = true;
-        navigate('player-screen', '#player-title');
+        if (!window.DearMeTTS) navigate('player-screen', '#player-title');
         $('letter-subtitle').textContent = '';
         $('player-status').textContent = supported ? '편지를 읽고 있어요.' : '음성이 지원되지 않아 자막으로 편지를 전해요.';
         function animateMouth() {
@@ -182,10 +189,11 @@
             catch { utterance.onerror(); }
         }
         async function readGateway() {
-            $('letter-subtitle').textContent = '음성을 준비하고 있어요…';
             const fail = error => {
                 if (run !== token) return;
                 stop();
+                const host = $('loading-screen').classList.contains('active') ? $('loading-screen') : $('player-screen');
+                host.append($('tts-error-panel'));
                 $('tts-error-message').textContent = error.message || '음성을 재생하지 못했어요.';
                 $('tts-error-panel').hidden = false;
                 const exhausted = (error.attempts || 0) >= window.DearMeTTS.maxAttempts;
@@ -212,12 +220,6 @@
                     $('letter-subtitle').textContent = cues[index];
                     if (index === cues.length - 1) { clearInterval(mouthTimer); setFrame('hello'); }
                 };
-                audio.onloadedmetadata = () => {
-                    if (run !== token || currentAudio !== audio) return;
-                    if (!Number.isFinite(audio.duration) || Math.abs(audio.duration - asset.durationSeconds) > .2) {
-                        fail(Object.assign(new Error('음성 파일의 실제 길이가 응답과 달라요. 응답 규격을 확인해 주세요.'), { retryable: false }));
-                    }
-                };
                 audio.onplaying = () => {
                     if (run !== token || currentAudio !== audio) return;
                     clearTimers();
@@ -237,6 +239,34 @@
                     $('letter-subtitle').textContent = '그럼 안녕.';
                     finish('', 2800, 'hello');
                 };
+                await new Promise((resolve, reject) => {
+                    let settled = false;
+                    const settle = error => {
+                        if (settled) return;
+                        settled = true;
+                        clearTimeout(startupTimer);
+                        startupTimer = null;
+                        audio.removeEventListener('canplay', ready);
+                        audio.removeEventListener('error', failed);
+                        cancelAudioPreparation = null;
+                        if (error) reject(error); else resolve();
+                    };
+                    const ready = () => settle();
+                    const failed = () => settle(Object.assign(new Error('음성 파일을 불러오지 못했어요. 다시 시도해 주세요.'), { retryable: true }));
+                    cancelAudioPreparation = () => settle(new DOMException('Cancelled', 'AbortError'));
+                    audio.addEventListener('canplay', ready);
+                    audio.addEventListener('error', failed);
+                    startupTimer = setTimeout(() => settle(Object.assign(new Error('음성 파일 준비 시간이 초과됐어요.'), { retryable: true })), 15000);
+                    audio.preload = 'auto';
+                    audio.load();
+                    if (audio.readyState >= 3) ready();
+                });
+                if (run !== token || currentAudio !== audio) return;
+                if (!Number.isFinite(audio.duration) || Math.abs(audio.duration - asset.durationSeconds) > .2) {
+                    throw Object.assign(new Error('음성 파일의 실제 길이가 응답과 달라요. 응답 규격을 확인해 주세요.'), { retryable: false });
+                }
+                $('player-screen').append($('tts-error-panel'));
+                navigate('player-screen', '#player-title');
                 audio.onerror = () => fail(Object.assign(new Error('음성 파일을 재생하지 못했어요. 다시 재생하거나 편지를 받아 주세요.'), { retryable: true }));
                 startupTimer = setTimeout(() => fail(Object.assign(new Error('음성 파일 재생을 시작하지 못했어요. 다시 시도해 주세요.'), { retryable: true })), 15000);
                 await audio.play();
@@ -300,6 +330,7 @@
         navigate('result-screen', '#reply-title');
     }
     $('receive-letter-btn').addEventListener('click', receiveLetter);
+    $('tts-receive-btn').addEventListener('click', receiveLetter);
     $('skip-letter-btn').addEventListener('click', receiveLetter);
     $('download-text-btn').addEventListener('click', () => {
         if (result) saveFile(result.reply, 'text/plain;charset=utf-8', 'dear-me-letter.txt');
