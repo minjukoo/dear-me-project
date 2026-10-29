@@ -102,7 +102,21 @@ h2 { font-size: 1.5rem; margin-bottom: 10px; }
 #ending-screen { background: #202334 url('/background_room.png') center / cover no-repeat; justify-content: flex-end; padding: 32px 20px max(64px, env(safe-area-inset-bottom)); }
 .ending-menu { display: flex; flex-wrap: wrap; justify-content: center; gap: 16px; }
 .ending-menu > button { min-width: 180px; margin: 0; background: rgba(255,255,255,.94); color: var(--primary-color); box-shadow: 0 8px 24px #0004; }
-#ending-status:not(:empty) { flex-basis: 100%; padding: 12px 18px; border-radius: 12px; color: #302e29; background: rgba(255,255,255,.94); text-align: center; }
+#ending-status:empty { display: none; }
+#ending-status:not(:empty) {
+    flex-basis: 100%;
+    min-height: 76px;
+    display: grid;
+    place-items: center;
+    padding: 18px clamp(26px, 5vw, 72px);
+    border-radius: 0;
+    color: #fffaf0;
+    background: transparent url('/assets/buttons/dark/dark_text.png') center / 100% 300% no-repeat;
+    text-shadow: 0 1px 3px #000;
+    text-align: center;
+    line-height: 1.6;
+    overflow-wrap: anywhere;
+}
 #character-select-screen { min-height: 100svh; max-width: none; justify-content: center; background: #e8e7f1 url('/background.png') center / cover no-repeat; }
 #character-select-screen > .container { max-width: 560px; }
 @media (max-width: 1024px) and (orientation: portrait) {
