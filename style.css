@@ -105,16 +105,12 @@ h2 { font-size: 1.5rem; margin-bottom: 10px; }
 #ending-status:empty { display: none; }
 #ending-status:not(:empty) {
     flex-basis: 100%;
-    min-height: 76px;
-    display: grid;
-    place-items: center;
-    padding: 18px clamp(26px, 5vw, 72px);
-    border-radius: 0;
+    padding: 0;
     color: #fffaf0;
-    background: transparent url('/assets/buttons/dark/dark_text.png') center / 100% 300% no-repeat;
-    text-shadow: 0 1px 3px #000;
+    background: none;
+    text-shadow: 0 1px 5px #15182c, 0 2px 12px #15182c;
     text-align: center;
-    line-height: 1.6;
+    line-height: 1.7;
     overflow-wrap: anywhere;
 }
 #character-select-screen { min-height: 100svh; max-width: none; justify-content: center; background: #e8e7f1 url('/background.png') center / cover no-repeat; }
@@ -291,4 +287,14 @@ body:has(#player-screen.active.player-intro) #fullscreen-toggle { visibility: hi
 @media (max-width: 480px) {
     :root { --dark-control-width: calc(44vw - 12px); }
     #player-screen .letter-subtitle { padding-inline: calc(10px + 2.5em); }
+}
+
+/* Use viewport coordinates for both controls and align the visible artwork tops. */
+.fullscreen-toggle.dark-art, #skip-letter-btn {
+    position: fixed;
+    top: max(12px, env(safe-area-inset-top));
+}
+#skip-letter-btn {
+    /* The supplied PNGs have different transparent top margins (9/763 vs 31/736). */
+    background-position: center calc(50% + var(--dark-control-height) * .030324);
 }
